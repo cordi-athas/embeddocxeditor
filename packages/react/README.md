@@ -128,4 +128,4 @@ The bridge is origin-safe out of the box: the client posts to — and validates
 events from — the **editor's own origin** (derived from `src`), and the editor
 only accepts commands from its embedder, replying document bytes to that origin
 only (never `*`). To pin an explicit allowlist, append `?dxeParentOrigin=<your-origin>`
-to `src`. See the main project README → "Güvenlik (cross-origin / postMessage)".
+to `src`. See the main project README → "Security (cross-origin / postMessage)".

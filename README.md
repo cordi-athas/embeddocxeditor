@@ -1,90 +1,90 @@
 # embeddocxeditor
 
-**Offline-first, tam-sadakatli (full-fidelity) DOCX editörü — tamamen tarayıcıda.**
+**Offline-first, full-fidelity DOCX editor — entirely in the browser.**
 
-Çekirdek motor: **LibreOffice'in WebAssembly'e derlenmiş hali** ([ZetaOffice / ZetaJS](https://github.com/allotropia/zetajs)).
-Gerçek LibreOffice layout motoru tarayıcıda çalıştığı için sayfalama, tablolar, numaralandırma, üstbilgi/altbilgi, alanlar ve değişiklik takibi **Word'le birebir** render edilir — sunucu yok, dosya yüklemesi yok.
+Core engine: **LibreOffice compiled to WebAssembly** ([ZetaOffice / ZetaJS](https://github.com/allotropia/zetajs)).
+Because the real LibreOffice layout engine runs in the browser, pagination, tables, numbering, headers/footers, fields, and change tracking render **exactly like Word** — no server, no file upload.
 
-> Durum: **çalışan POC.** Doğrulandı: tarayıcıda boot, DOCX aç/render, DOCX kaydet (round-trip), ve **kendi özel arayüzü** — LibreOffice'in menü/araç çubuğu/sidebar/statusbar'ı gizli, üstteki kendi toolbar'ımız `.uno:*` komutlarını dispatch ediyor ve buton durumlarını yansıtıyor. Sıradaki işler: [docs/ROADMAP.md](docs/ROADMAP.md).
+> Status: **working POC.** Verified: in-browser boot, DOCX open/render, DOCX save (round-trip), and **its own custom UI** — LibreOffice's menu/toolbar/sidebar/statusbar are hidden while our own toolbar on top dispatches `.uno:*` commands and reflects button state. Next up: [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ---
 
-## Neden bu mimari?
+## Why this architecture?
 
-Kısıtlar: **saf tarayıcı + birebir Word paritesi + offline + lisans esnek (AGPL'siz).**
-Bu kombinasyonu karşılayan tek gerçekçi açık kaynak temel ZetaJS'tir. Tam gerekçe ve elenen alternatifler (OnlyOffice-WASM/AGPL, eigenpal/parite-henüz-yok, sıfırdan motor): [docs/DECISION.md](docs/DECISION.md).
+Constraints: **pure browser + 1:1 Word parity + offline + flexible license (no AGPL).**
+The only realistic open-source base that meets this combination is ZetaJS. Full rationale and rejected alternatives (OnlyOffice-WASM/AGPL, eigenpal/parity-not-there-yet, engine-from-scratch): [docs/DECISION.md](docs/DECISION.md).
 
-## Çalıştırma
+## Running
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173  (predev: zeta.js'i vendor'lar + WASM'ı pinler/indirir)
+npm run dev      # http://localhost:5173  (predev: vendors zeta.js + pins/downloads the WASM)
 ```
 
-İlk `dev`/`build` öncesi `npm run fetch:wasm` (predev/prebuild'de otomatik) **sürümü sabitlenmiş** LibreOffice-WASM build'ini (`scripts/wasm-pin.json`, ~52 MB) `public/wasm/<pin>/` altına indirir ve her dosyayı **sha256 ile doğrular**. Dosyalar **same-origin** sunulur (CDN'e runtime bağımlılığı yok); Service Worker bunları cache'ler → **ikinci açılış offline çalışır**. Ayrıntı: aşağıda [WASM sürüm sabitleme](#wasm-sürüm-sabitleme-pin--varsayılan).
+Before the first `dev`/`build`, `npm run fetch:wasm` (runs automatically on predev/prebuild) downloads the **version-pinned** LibreOffice-WASM build (`scripts/wasm-pin.json`, ~52 MB) into `public/wasm/<pin>/` and **verifies every file by sha256**. The files are served **same-origin** (no runtime CDN dependency); the Service Worker caches them → **the second load works offline**. Details: [WASM version pinning](#wasm-version-pinning-default) below.
 
-Üretim derlemesi:
+Production build:
 
 ```bash
 npm run build && npm run preview
 ```
 
-> **Zorunlu:** Sayfa *cross-origin isolated* olmalı (LibreOffice thread'leri `SharedArrayBuffer` ister). Dev/preview header'ları `vite.config.ts` içinde ayarlı. **Üretimde de** her yanıtta şu iki header şart:
+> **Required:** the page must be *cross-origin isolated* (LibreOffice threads need `SharedArrayBuffer`). Dev/preview headers are set in `vite.config.ts`. **In production too**, every response needs these two headers:
 > ```
 > Cross-Origin-Opener-Policy: same-origin
 > Cross-Origin-Embedder-Policy: require-corp
 > ```
-> Ayrıca `/wasm/` altındaki **`*.wasm` ve `*.data` Brotli** saklanır; host bunları `Content-Encoding: br` ile sunmalı (dev/preview için `vite.config.ts` hallediyor — üretim host'unda da şart, yoksa "expected magic word" hatası). Bkz. [WASM sürüm sabitleme](#wasm-sürüm-sabitleme-pin--varsayılan).
+> Also, the **`*.wasm` and `*.data`** files under `/wasm/` are stored **Brotli-compressed**; the host must serve them with `Content-Encoding: br` (`vite.config.ts` handles this for dev/preview — required on your production host too, otherwise an "expected magic word" error). See [WASM version pinning](#wasm-version-pinning-default).
 
-## Kaydetme — ve önemli bir tuzak
+## Saving — and an important gotcha
 
-Belgeyi gerçek diskine indirmek için **üstteki "Kaydet" (DOCX) / "PDF" butonlarını** kullan.
-Belge DOCX/PDF olarak export edilir (`storeToURL`, `MS Word 2007 XML` / `writer_pdf_Export`) ve:
-- **Destekleyen tarayıcılarda (Chromium):** native **"Farklı Kaydet"** penceresi açılır — konum + dosya adı + uzantı seçilir (File System Access API, `showSaveFilePicker`).
-- **Firefox/Safari veya cross-origin iframe'de:** doğrudan indirme (fallback).
+Use the **"Save" (DOCX) / "PDF" buttons at the top** to download the document to your real disk.
+The document is exported as DOCX/PDF (`storeToURL`, `MS Word 2007 XML` / `writer_pdf_Export`) and:
+- **In supporting browsers (Chromium):** a native **"Save As"** dialog opens — pick location + filename + extension (File System Access API, `showSaveFilePicker`).
+- **In Firefox/Safari or a cross-origin iframe:** direct download (fallback).
 
-Belge ister "Aç"/"Yeni" ile, ister LibreOffice'in kendi Start Center'ından açılmış olsun, kayıt anında *aktif* belge çözülür.
+Whether the document was opened via "Open"/"New" or from LibreOffice's own Start Center, the *active* document is resolved at save time.
 
-> ℹ️ **Not (WASM sanal FS tuzağı):** LibreOffice'in **kendi** Kaydet'i `/home/web_user` gibi bir pencere açıp WASM'ın **sanal dosya sistemine** yazar — senin diskine değil. Bu yüzden **Ctrl+S _ve_ Ctrl+Shift+S yakalanıp** (modül yüklenir yüklenmez, capture-phase'de) bizim kaydet/dışa-aktar akışımıza yönlendirilir; LibreOffice'in menü/araç çubuğu da gizli. Yani normalde o pencereye hiç ulaşmazsın — üstteki **File ▸ Kaydet**'i kullan.
+> ℹ️ **Note (WASM virtual-FS gotcha):** LibreOffice's **own** Save opens a window like `/home/web_user` and writes to the WASM **virtual filesystem** — not your disk. That's why **Ctrl+S _and_ Ctrl+Shift+S are intercepted** (capture-phase, on a listener registered at module load) and routed into our save/export flow; LibreOffice's menu/toolbar are also hidden. So you normally never reach that window — use **File ▸ Save** at the top.
 
-## Nasıl çalışıyor? (özet)
+## How it works (overview)
 
 ```
-Ana thread                          LibreOffice-WASM worker (em-pthread)
+Main thread                          LibreOffice-WASM worker (em-pthread)
 ─────────────                        ──────────────────────────────────
-<canvas id=qtcanvas>  ◀── render ──  LibreOffice (Qt5) çizimi
+<canvas id=qtcanvas>  ◀── render ──  LibreOffice (Qt5) drawing
 ZetaDocxEditor (TS)   ◀─ MessagePort ▶ public/office_thread.js
-  FS.writeFile  ───────── /tmp/office/*.docx (paylaşımlı Emscripten FS) ─────────▶ loadComponentFromURL
+  FS.writeFile  ───────── /tmp/office/*.docx (shared Emscripten FS) ─────────▶ loadComponentFromURL
   FS.readFile   ◀──────── storeToURL(FilterName: "MS Word 2007 XML") ◀────────────
 ```
 
-- `src/engine/zeta-engine.ts` — **senin paketinin çekirdeği.** Tüm ZetaJS/UNO/Emscripten detayını gizleyen temiz API: `boot()`, `newDocument()`, `openDocx(File)`, `saveDocx(): Blob`, `dispatch('.uno:Bold')`, `onFormatState(cb)`.
-- **Kendi arayüzü (Faz 3):** LibreOffice'in menü/araç çubuğu/sidebar/statusbar'ı worker'da gizlenir; kendi toolbar'ımız (`index.html`'de `data-uno`/`data-state`'li butonlar) `.uno:*` dispatch eder ve buton aktif-durumlarını `XStatusListener` ile yansıtır.
-- `public/office_thread.js` — worker; UNO API ile belgeyi açar/oluşturur/dışa aktarır.
+- `src/engine/zeta-engine.ts` — **the core of your package.** A clean API that hides every ZetaJS/UNO/Emscripten detail: `boot()`, `newDocument()`, `openDocx(File)`, `saveDocx(): Blob`, `dispatch('.uno:Bold')`, `onFormatState(cb)`.
+- **Custom UI (Phase 3):** LibreOffice's menu/toolbar/sidebar/statusbar are hidden in the worker; our own toolbar (buttons with `data-uno`/`data-state` in `index.html`) dispatches `.uno:*` and reflects active-button state via `XStatusListener`.
+- `public/office_thread.js` — worker; opens/creates/exports the document via the UNO API.
 - `public/sw.js` — offline app-shell + WASM cache.
 
-Ayrıntı: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## Başka siteye gömme (embed)
+## Embedding in another site
 
-Tüm editör tek bir kök (`.dxe`) altında ve **stiller bu köke izole** — host sayfanın CSS'iyle çakışmaz. Boot boyunca canvas gizli bir overlay arkasında durur, böylece kullanıcı **LibreOffice'in hiçbir arayüzünü (Start Center, menü, cetvel, sidebar) görmez** — sadece bizim UI.
+The whole editor lives under a single root (`.dxe`) and **styles are scoped to that root** — no clash with the host page's CSS. During boot the canvas sits behind a hidden overlay, so the user **never sees any of LibreOffice's UI (Start Center, menu, ruler, sidebar)** — only our UI.
 
-Cross-origin isolation (COOP/COEP) gerektiği için **en sağlam gömme yolu iframe**:
+Because cross-origin isolation (COOP/COEP) is required, **the most robust embedding path is an iframe**:
 
 ```html
 <iframe
-  src="https://senin-hostun/"
+  src="https://your-host/"
   allow="cross-origin-isolated; clipboard-write"
   style="width:100%; height:600px; border:0; border-radius:10px"
 ></iframe>
 ```
 
-- **Host sayfa cross-origin isolated olmalı** (kendi sunucusunda `COOP: same-origin` + `COEP: require-corp`). Bunu npm paketi ayarlayamaz; host yapar.
-- **Editör** ise embed edilebilmek için `Cross-Origin-Resource-Policy: cross-origin` gönderir (cross-origin iframe COEP altında aksi halde bloklanır) — `vite.config.ts`'te ayarlı, üretimde de gönder.
+- **The host page must be cross-origin isolated** (on its own server: `COOP: same-origin` + `COEP: require-corp`). An npm package can't set these; the host does.
+- **The editor** sends `Cross-Origin-Resource-Policy: cross-origin` so it can be embedded (otherwise a cross-origin iframe is blocked under COEP) — set in `vite.config.ts`; send it in production too.
 
-### React paketi: `embeddocx-react`
+### React package: `embeddocx-react`
 
-React uygulamaları için hazır bileşen (`packages/react`): `<DocxEditor src=… document=… onChange=… ref=…/>`. Çalışan örnek: `packages/react/example` (`npm i && npm run dev` → editörü iframe'le gömer). Ayrıntı: [packages/react/README.md](packages/react/README.md).
+A ready-made component for React apps (`packages/react`): `<DocxEditor src=… document=… onChange=… ref=…/>`. Working example: `packages/react/example` (`npm i && npm run dev` → embeds the editor via iframe). Details: [packages/react/README.md](packages/react/README.md).
 
 ```tsx
 import { DocxEditor, type DocxEditorHandle } from 'embeddocx-react';
@@ -96,109 +96,109 @@ const ref = useRef<DocxEditorHandle>(null);
 
 ### Host API (SDK)
 
-Host sayfan editörle bağımlılıksız bir SDK üzerinden konuşur (`public/embed-sdk.js`).
-Host belgeyi **programatik verir ve geri alır** — dosya diyaloğuna gerek yok:
+Your host page talks to the editor through a dependency-free SDK (`public/embed-sdk.js`).
+The host **provides and retrieves the document programmatically** — no file dialog needed:
 
 ```js
-import { DocxEditorClient } from 'https://SENIN-HOSTUN/embed-sdk.js';
+import { DocxEditorClient } from 'https://YOUR-HOST/embed-sdk.js';
 
 const editor = new DocxEditorClient(document.querySelector('iframe#editor'));
 await editor.ready();
 
-await editor.loadDocument(arrayBuffer, { name: 'rapor.docx' }); // belgeyi yükle
-editor.on('change', () => markDirty());                          // düzenlendi
-const bytes = await editor.getDocx();                            // güncel DOCX (Uint8Array)
+await editor.loadDocument(arrayBuffer, { name: 'report.docx' }); // load the document
+editor.on('change', () => markDirty());                          // edited
+const bytes = await editor.getDocx();                            // current DOCX (Uint8Array)
 
 editor.newDocument();
 editor.setTheme({ '--dxe-accent': '#2563eb' });
 editor.dispatch('.uno:Bold');
 ```
 
-| Metot / olay | İş |
+| Method / event | What it does |
 |------|-----|
-| `ready()` | Editör hazır olunca çözülür (komutlar öncesi bekle) |
-| `loadDocument(bytes, {name, readOnly})` | Host'tan belge yükle |
-| `getDocx() → Uint8Array` | Güncel belgeyi DOCX byte'ı olarak al (host kendi "Kaydet"i için) |
-| `newDocument()` · `setTheme(vars)` · `dispatch(uno, args)` | yeni belge / tema / ham UNO komutu |
-| `on('ready' \| 'change' \| 'clean' \| 'save' \| 'error', cb)` | olaylar |
+| `ready()` | Resolves once the editor is ready (await before issuing commands) |
+| `loadDocument(bytes, {name, readOnly})` | Load a document from the host |
+| `getDocx() → Uint8Array` | Get the current document as DOCX bytes (for the host's own "Save") |
+| `newDocument()` · `setTheme(vars)` · `dispatch(uno, args)` | new document / theme / raw UNO command |
+| `on('ready' \| 'change' \| 'clean' \| 'save' \| 'error', cb)` | events |
 
-Editör içinde **Ctrl/Cmd+S** LibreOffice'in iç kaydetmesine gitmez — embed'de host'a **`save`** olayı yollar (host `getDocx` ile kalıcılaştırır), standalone'da indirir. `change`/`clean` ile kaydedilmemiş değişiklik takibi yapılır.
+Inside the editor, **Ctrl/Cmd+S** does not go to LibreOffice's internal save — when embedded it sends a **`save`** event to the host (which persists via `getDocx`), and standalone it downloads. Unsaved-change tracking is done with `change`/`clean`.
 
-Belgeler sınır boyunca **ArrayBuffer** olarak geçer (base64 yok). Çalışan örnek: **`packages/react/example`** — host'u iframe ile gömüp Yükle/İndir/Tema'yı sürer.
+Documents cross the boundary as **ArrayBuffer** (no base64). Working example: **`packages/react/example`** — embeds the host via iframe and drives Load/Download/Theme.
 
-### Güvenlik (cross-origin / postMessage)
+### Security (cross-origin / postMessage)
 
-Köprü **origin-güvenli** tasarlandı:
+The bridge is designed to be **origin-safe**:
 
-- **Editör yalnızca kendi gömücüsünden** (`event.source === window.parent`) ve **izinli bir origin'den** gelen komutu işler. İzin listesi verilmezse gördüğü **ilk** host origin'ine kilitlenir (trust-on-first-use). Cevaplar — özellikle `getDocx` belge byte'ları — **sadece** o güvenilen origin'e gönderilir, asla `'*'`'a.
-- **SDK / React client**, mesajları iframe `src`'inden türettiği **editör origin'ine** yollar (`'*'` değil) ve gelen olaylarda `event.origin`'i doğrular — yani otomatik, ek ayar gerekmez.
+- **The editor only acts on commands from its own embedder** (`event.source === window.parent`) and from an **allowed origin**. If no allowlist is given, it locks to the **first** host origin it sees (trust-on-first-use). Replies — especially the `getDocx` document bytes — go **only** to that trusted origin, never to `'*'`.
+- **The SDK / React client** post messages to the **editor's own origin** (derived from the iframe `src`, not `'*'`) and validate `event.origin` on inbound events — i.e. automatic, no extra config.
 
-Açık izin listesi (TOFU yerine) ve sertleştirme için iframe `src`'ine parametre eklenir:
+For an explicit allowlist (instead of TOFU) and hardening, add parameters to the iframe `src`:
 
-| Parametre | Etki |
+| Parameter | Effect |
 |-----------|------|
-| `?dxeParentOrigin=https://host.example` | Editörü tek bir host origin'ine kilitle |
-| `?dxeAllowedOrigins=https://a.example,https://b.example` | Birden çok origin'e izin ver |
-| `?dxeAllowDispatch=0` | Ham `.uno:` `dispatch` komutunu kapat |
+| `?dxeParentOrigin=https://host.example` | Lock the editor to a single host origin |
+| `?dxeAllowedOrigins=https://a.example,https://b.example` | Allow multiple origins |
+| `?dxeAllowDispatch=0` | Disable the raw `.uno:` `dispatch` command |
 
-Standalone deploy'da `installHostBridge(editor, root, hooks, { allowedOrigins, allowDispatch })` ile de ayarlanabilir. (Karar mantığı `src/embed-trust.ts`'te izole + `npm test` ile birim-test edilir.)
+In a standalone deploy you can also configure it via `installHostBridge(editor, root, hooks, { allowedOrigins, allowDispatch })`. (The decision logic is isolated in `src/embed-trust.ts` and unit-tested via `npm test`.)
 
-## Tema
+## Theming
 
-`.dxe` üzerindeki CSS değişkenleriyle yeniden renklendirilir:
+Recolor via CSS variables on `.dxe`:
 
 ```css
 .dxe {
-  --dxe-accent:  #2563eb;   /* vurgu (aktif buton, spinner) */
-  --dxe-surface: #ffffff;   /* toolbar zemini */
-  --dxe-fg:      #1f2937;   /* metin */
+  --dxe-accent:  #2563eb;   /* accent (active button, spinner) */
+  --dxe-surface: #ffffff;   /* toolbar background */
+  --dxe-fg:      #1f2937;   /* text */
   --dxe-border:  #e6e8eb;
   --dxe-radius:  10px;
 }
 ```
 
-## Dil (i18n)
+## Language (i18n)
 
-Arayüz **varsayılan İngilizce**; şu an **EN ve TR** var. Seçim yolları:
+The UI is **English by default**; currently **EN and TR**. Ways to choose:
 
-- **Kod seviyesinde:** `import { setLang } from './i18n'; setLang('tr');` (init öncesi) veya `src/i18n.ts`'teki `DEFAULT_LANG`.
-- **iframe embed:** `src=".../?lang=tr"` (URL parametresi).
-- **React:** `<DocxEditor lang="tr" … />` (otomatik `?lang=`'e çevrilir).
+- **At the code level:** `import { setLang } from './i18n'; setLang('tr');` (before init) or `DEFAULT_LANG` in `src/i18n.ts`.
+- **iframe embed:** `src=".../?lang=tr"` (URL parameter).
+- **React:** `<DocxEditor lang="tr" … />` (auto-converted to `?lang=`).
 
-Yeni metinler `src/i18n.ts` içindeki sözlüğe eklenir; statik DOM dizeleri `applyI18n()` ile uygulanır, dinamikler `t('key')` ile.
+New strings go in the dictionary in `src/i18n.ts`; static DOM strings are applied via `applyI18n()`, dynamic ones via `t('key')`.
 
-## Lisans notu (önemli)
+## License note (important)
 
-- Bu repodaki **wrapper kodu (engine, UI, embed bridge, React paketi) MIT** — [`LICENSE`](LICENSE). `embeddocx-react` da MIT yayınlanır.
-- `zetajs` npm paketi **MIT** (allotropia). Redistribute edildiği için lisansı `public/vendor/zetajs/LICENSE`'a kopyalanır (`copy-vendor`).
-- LibreOffice-WASM payload'ı (`soffice.*`) **MPL-2.0 / LGPL-3.0+**. **Varsayılan kurulum bu dosyaları sürüm sabitleyip kendi origininden sunar** (pin) — yani onları *yeniden dağıtıyorsun*; dolayısıyla MPL/LGPL şartları senin dağıtımına uygulanır. Bunun için gereken artefaktlar repoda: tam lisans metinleri [`licenses/`](licenses/) (MPL-2.0, LGPL-3.0, GPL-3.0) ve atıf/kaynak/değiştirme bildirimi [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md). Yükümlülüğü en aza indirmek istersen `SOFFICE_BASE_URL`'i CDN `_latest`'e çevirip runtime'da çekebilirsin (ama o zaman sürüm sabit değildir).
-- **Not:** `embeddocx-react` paketi yalnızca React wrapper'ı (MIT) içerir; LibreOffice'i barındırmaz (iframe ile ayrı deploy edilen editörü gömer). LibreOffice/Qt bildirimleri **editör web-app deploy'una** uygulanır, npm paketine değil.
-- Lisans seçimleri tamamlanmış olsa da, dağıtımdan önce **hukuki kontrol önerilir.**
+- The **wrapper code in this repo (engine, UI, embed bridge, React package) is MIT** — [`LICENSE`](LICENSE). `embeddocx-react` is published as MIT too.
+- The `zetajs` npm package is **MIT** (allotropia). Because it is redistributed, its license is copied to `public/vendor/zetajs/LICENSE` (`copy-vendor`).
+- The LibreOffice-WASM payload (`soffice.*`) is **MPL-2.0 / LGPL-3.0+**. **The default setup version-pins these files and serves them from your own origin** (pin) — i.e. you *redistribute* them, so the MPL/LGPL terms apply to your distribution. The required artifacts ship in the repo: full license texts in [`licenses/`](licenses/) (MPL-2.0, LGPL-3.0, GPL-3.0) and the attribution/source/replacement notice in [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md). To minimize the obligation you can point `SOFFICE_BASE_URL` at the CDN `_latest` and fetch at runtime (but then the version isn't pinned).
+- **Note:** the `embeddocx-react` package contains only the React wrapper (MIT); it does not bundle LibreOffice (it embeds a separately-deployed editor via iframe). The LibreOffice/Qt notices apply to the **editor web-app deployment**, not the npm package.
+- Even though the license choices are settled, a **legal review is recommended before distribution.**
 
-## WASM sürüm sabitleme (pin) — varsayılan
+## WASM version pinning (default)
 
-`_latest` CDN takma adı zamanla yeniden derlenir (yalnızca ~20 dk cache'lenir); ona runtime'da bağlı kalmak boot'ları **tekrar üretilemez** kılar ve sessizce bozulabilir. Bu yüzden varsayılan olarak **tek bir build sabitlenir** (`scripts/wasm-pin.json`, build tarihi `2025-05-13`) ve same-origin sunulur:
+The `_latest` CDN alias is rebuilt over time (and cached only ~20 min); depending on it at runtime makes boots **non-reproducible** and can break silently. So by default **a single build is pinned** (`scripts/wasm-pin.json`, build date `2025-05-13`) and served same-origin:
 
-- `npm run fetch:wasm` (predev/prebuild'de otomatik) dosyaları kaynaktan `public/wasm/<pin>/` altına indirir ve **sha256** ile manifest'e karşı doğrular. Eşleşmezse hata verir — doğrulanmamış byte asla servis edilmez. `--verify` ile diskteki dosyalar da yeniden hash'lenir. Dosyalar git-ignore'lu (~52 MB); **manifest + script'i commit'lemek yeterli** (taze clone birebir aynısını üretir).
-- `src/engine/config.ts` → `SOFFICE_BASE_URL = '/wasm/<pin>/'` (same-origin). Same-origin olduğu için CORP derdi yok; offline tamamen senin kontrolünde.
-- `soffice.wasm` ve `soffice.data` **Brotli** saklanır (CDN'in gönderdiği biçim) ve `Content-Encoding: br` ile sunulmalıdır. Dev/preview'de `vite.config.ts` bunu hallediyor; **üretim host'un da** `/wasm/` altındaki `*.wasm` ve `*.data`'yı `Content-Encoding: br` (+ `*.wasm` için `Content-Type: application/wasm`) ile sunmalı — aksi halde tarayıcı ham brotli'yi wasm sanıp **"expected magic word"** ile patlar.
+- `npm run fetch:wasm` (auto on predev/prebuild) downloads the files from the source into `public/wasm/<pin>/` and verifies them by **sha256** against the manifest. On a mismatch it errors — unverified bytes are never served. `--verify` re-hashes the on-disk files too. The files are git-ignored (~52 MB); **committing the manifest + script is enough** (a fresh clone reproduces them exactly).
+- `src/engine/config.ts` → `SOFFICE_BASE_URL = '/wasm/<pin>/'` (same-origin). Being same-origin, there is no CORP hassle and offline is entirely under your control.
+- `soffice.wasm` and `soffice.data` are stored **Brotli-compressed** (the form the CDN ships) and must be served with `Content-Encoding: br`. `vite.config.ts` handles this in dev/preview; **your production host must also** serve `*.wasm` and `*.data` under `/wasm/` with `Content-Encoding: br` (+ `Content-Type: application/wasm` for `*.wasm`) — otherwise the browser treats the raw brotli as wasm and fails with **"expected magic word"**.
 
-**Yeniden pin'leme:** `scripts/wasm-pin.json`'daki `pin`'i ve `src/engine/config.ts`'teki `WASM_PIN`'i bump'la, `public/wasm/<eski>`'yi sil, `source`'u (gerekiyorsa) güncelle, `npm run fetch:wasm` çalıştır, ardından yeni `bytes`/`sha256` değerlerini manifest'e yaz.
+**Re-pinning:** bump `pin` in `scripts/wasm-pin.json` and `WASM_PIN` in `src/engine/config.ts`, delete `public/wasm/<old>`, update `source` (if needed), run `npm run fetch:wasm`, then write the new `bytes`/`sha256` values into the manifest.
 
-**Pin'siz alternatif:** `SOFFICE_BASE_URL = 'https://cdn.zetaoffice.net/zetaoffice_latest/'` → kurulum sıfır, ama sürüm sabit değil (CDN runtime bağımlılığı). Tamamen düz (brotli'siz) bir same-origin barındırma istersen `soffice.*` dosyalarını `public/` köküne koyup `SOFFICE_BASE_URL = ''` yapabilirsin.
+**Pin-less alternative:** `SOFFICE_BASE_URL = 'https://cdn.zetaoffice.net/zetaoffice_latest/'` → zero setup, but the version isn't pinned (runtime CDN dependency). For fully plain (no-brotli) same-origin hosting, put the `soffice.*` files in the `public/` root and set `SOFFICE_BASE_URL = ''`.
 
-## Dosya haritası
+## File map
 
-| Yol | Rol |
+| Path | Role |
 |-----|-----|
-| `src/engine/zeta-engine.ts` | Editör API'si (paket çekirdeği) |
-| `src/engine/protocol.ts` | Ana thread ↔ worker mesaj sözleşmesi |
-| `src/engine/config.ts` | WASM pin (`SOFFICE_BASE_URL`, `WASM_PIN`) + asset URL'leri |
-| `src/main.ts` | UI kabuğu (toolbar, aç/kaydet, SW kaydı) |
-| `public/office_thread.js` | LibreOffice worker (UNO sürücüsü) |
-| `public/sw.js` | Offline cache (pinli `/wasm/` ve CDN: cache-first; kabuk: network-first) |
-| `vite.config.ts` | COOP/COEP header'ları + `/wasm/` Brotli (`Content-Encoding: br`) servisi |
-| `scripts/copy-vendor.mjs` | `zeta.js`'i node_modules'tan public'e kopyalar |
-| `scripts/wasm-pin.json` | Sabitlenmiş WASM manifesti (pin, kaynak, dosya boyut + sha256) |
-| `scripts/fetch-wasm.mjs` | Pinli WASM'ı indirir + sha256 doğrular (`npm run fetch:wasm`) |
-| `public/wasm/<pin>/` | Sabitlenmiş `soffice.*` (git-ignore'lu, fetch ile üretilir) |
+| `src/engine/zeta-engine.ts` | Editor API (package core) |
+| `src/engine/protocol.ts` | Main thread ↔ worker message contract |
+| `src/engine/config.ts` | WASM pin (`SOFFICE_BASE_URL`, `WASM_PIN`) + asset URLs |
+| `src/main.ts` | UI shell (toolbar, open/save, SW registration) |
+| `public/office_thread.js` | LibreOffice worker (UNO driver) |
+| `public/sw.js` | Offline cache (pinned `/wasm/` and CDN: cache-first; shell: network-first) |
+| `vite.config.ts` | COOP/COEP headers + `/wasm/` Brotli (`Content-Encoding: br`) serving |
+| `scripts/copy-vendor.mjs` | Copies `zeta.js` from node_modules into public |
+| `scripts/wasm-pin.json` | Pinned WASM manifest (pin, source, file sizes + sha256) |
+| `scripts/fetch-wasm.mjs` | Downloads + sha256-verifies the pinned WASM (`npm run fetch:wasm`) |
+| `public/wasm/<pin>/` | Pinned `soffice.*` (git-ignored, produced by fetch) |
