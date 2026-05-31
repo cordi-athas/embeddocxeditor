@@ -1,59 +1,59 @@
-# Yol Haritası
+# Roadmap
 
-## Faz 0 — De-risk spike (ŞİMDİ) 🎯
+## Phase 0 — De-risk spike ✅ (done)
 
-Tüm projeyi taahhüt etmeden önce kanıtlanması gereken üç şey. Kabul kriterleri:
+Three things to prove before committing to the whole project. Acceptance criteria — all verified:
 
-- [ ] **Boot & offline:** `npm run dev` → editör açılıyor. İkinci yüklemede ağ kapalıyken (DevTools → Offline) yine açılıyor (SW cache).
-- [ ] **Render sadakati:** Tablolar, numaralandırma, üstbilgi/altbilgi ve görsel içeren *karmaşık* bir gerçek DOCX açılıyor ve Word'deki görünümle gözle örtüşüyor.
-- [ ] **Round-trip:** Aç → düzenle → "DOCX Kaydet" → yeniden aç. Biçim/içerik kaybı yok; dosya Word'de sorunsuz açılıyor.
+- [x] **Boot & offline:** `npm run dev` → the editor opens. On a second load with the network off (DevTools → Offline) it still opens (SW cache).
+- [x] **Render fidelity:** a *complex* real DOCX with tables, numbering, headers/footers and images opens and visually matches its appearance in Word.
+- [x] **Round-trip:** open → edit → "Save DOCX" → reopen. No format/content loss; the file opens cleanly in Word.
 
-Bu üçü geçerse "saf tarayıcı + birebir parite" hedefi doğrulanmış olur.
+Passing these three validates the "pure browser + 1:1 parity" goal.
 
-## Faz 1 — Editör temeli
+## Phase 1 — Editor foundation ✅
 
-- [ ] Hata/durum UI'si, yükleme spinner'ı (canvas üstü overlay — `web-office` örneğindeki gibi).
-- [ ] Belge kapatma / "değişiklik var mı" takibi (`Modified` durumu UNO'dan).
-- [ ] PDF dışa aktarma (`storeToURL`, `writer_pdf_Export`).
-- [ ] Klavye/odak ve yüksek-DPI/zoom davranışının cilalanması.
+- [x] Error/status UI, loading spinner (overlay above the canvas).
+- [x] Document close / "is-modified" tracking (`Modified` state from UNO).
+- [x] PDF export (`storeToURL`, `writer_pdf_Export`).
+- [x] Keyboard/focus and high-DPI/zoom behavior polish.
 
-## Faz 2 — "Amaca özel paket" haline getirme
+## Phase 2 — Turning it into a "purpose-built package"
 
-- [x] **Çoklu dil (i18n):** arayüz İngilizce varsayılan; EN/TR. Kod seviyesinde `setLang()` / `DEFAULT_LANG`, ayrıca `?lang=tr` URL parametresi ve React `lang` prop'u ([src/i18n.ts](../src/i18n.ts)). Yeni dil eklemek için sözlüğe bir giriş yeter.
+- [x] **Internationalization (i18n):** UI English by default; EN/TR. At the code level `setLang()` / `DEFAULT_LANG`, plus the `?lang=tr` URL parameter and the React `lang` prop ([src/i18n.ts](../src/i18n.ts)). Adding a language is a single dictionary entry.
+- [x] **Host integration API (embed):** iframe postMessage bridge (`src/embed-host.ts`) + a dependency-free host SDK (`public/embed-sdk.js`: `ready`/`loadDocument`/`getDocx`/`newDocument`/`setTheme`/`dispatch` + `on('change'|'ready'|'clean'|'save'|'error')`) + a working example host (`packages/react/example`). Documents pass as ArrayBuffer; `change` is suppressed right after load. **Origin-safe** (main README → Security).
+- [x] **Ctrl/Cmd+S interception + dirty + beforeunload:** Ctrl+S (and Ctrl+Shift+S) are caught before Qt (a capture-phase listener registered at module load) → a `save` event to the host when embedded, a download when standalone. The `/home/web_user` gotcha is closed. Unsaved-change tracking (`change`/`clean` events + an amber dot in the toolbar) and a tab-close warning were added.
+- [x] **Event API:** `onReady`, `onChange`, `onClean`, `onSave`, `onError` — exposed on the React `<DocxEditor>` and on `DocxEditorClient` (`on(...)`).
+- [x] **React package** (`embeddocx-react`): the iframe-wrapping `<DocxEditor>` component + `DocxEditorClient` + tsup build (ESM+CJS) + a working example (`packages/react/example`); published to npm (MIT). The editor sends `Cross-Origin-Resource-Policy: cross-origin` for cross-origin embedding.
+- [ ] **Programmatic content API:** inject/replace content and **field/merge** (fill a template with host-supplied data) via UNO `XText` — turning the editor into a programmable document engine. (Find/replace is already done — see Phase 3 / Phase B.)
+- [ ] **Detect external opens:** notice documents opened via LibreOffice's Start Center / drag-drop using a UNO frame/component listener, and update the toolbar state + filename.
+- [ ] **Split `ZetaDocxEditor` into a standalone npm package** (a UI-independent core engine).
+- [ ] **Vue wrapper** (on the same SDK).
 
-- [x] **Host entegrasyon API'si (embed):** iframe postMessage köprüsü (`src/embed-host.ts`) + bağımlılıksız host SDK (`public/embed-sdk.js`: `ready`/`loadDocument`/`getDocx`/`newDocument`/`setTheme`/`dispatch` + `on('change'|'ready'|'error')`) + çalışan demo host sayfası (`public/embed-demo.html`). Belgeler ArrayBuffer ile geçer; yükleme sonrası `change` susturulur.
-- [x] **Ctrl/Cmd+S yakalama + dirty + beforeunload:** Ctrl+S, Qt'den önce (window-capture, boot öncesi kaydedilmiş listener) yakalanır → embed'de host'a `save` olayı, standalone'da indirme. `/home/web_user` tuzağı kapandı. Kaydedilmemiş değişiklik takibi (`change`/`clean` olayları + toolbar'da amber nokta) ve sekme kapatma uyarısı eklendi.
-- [ ] **Harici açılışları algıla:** LibreOffice Start Center / drag-drop ile açılan belgeleri UNO frame/component listener ile fark edip toolbar durumunu ve dosya adını güncelle.
-- [ ] `ZetaDocxEditor`'ı bağımsız npm paketi olarak ayır (UI'dan tamamen bağımsız çekirdek).
-- [x] **React paketi** (`embeddocx-react`): iframe-saran `<DocxEditor>` bileşeni + `DocxEditorClient` + tsup build + çalışan örnek (`packages/react/example`). Cross-origin embed için editöre `Cross-Origin-Resource-Policy: cross-origin` eklendi.
-- [ ] Vue sarmalayıcısı (aynı SDK üzerine).
-- [ ] Olay API'si: `onReady`, `onChange`, `onSave`, `onError`.
-- [ ] Programatik API: içerik enjeksiyonu, find/replace, alan/merge (UNO `XText` üzerinden).
+## Phase 3 — Custom UI ✅ (foundation done)
 
-## Faz 3 — Özel arayüz ✅ (temel tamam)
+Your own UI instead of LibreOffice's Qt UI:
 
-LibreOffice'in kendi Qt UI'sı yerine kendi arayüzün:
+- [x] Menubar/toolbars/sidebar/statusbar hidden via UNO (`public/office_thread.js`).
+- [x] Our own toolbar dispatches `.uno:Bold/Italic/Underline`, alignment, bullets, undo/redo.
+- [x] Active/inactive button sync via `XStatusListener` (Start Center skipped by creating a blank doc after boot).
+- [x] **Rich toolbar (Phase A):** a consistent inline **SVG icon set** (~28 icons, dependency-free, `currentColor` → accent when active) + paragraph style/font/size, color/highlight, bold/italic/strike, **sub/superscript, clear formatting, indent ±, line-spacing menu, ¶ formatting marks, spell check, zoom ±, PDF export**. All via `.uno` dispatch / state-sync; no dialog-opening commands.
+- [x] **Phase B — Find & Replace:** our own search bar (Ctrl+F, next/prev, Aa/word, Replace/All) + programmatic UNO (`createSearchDescriptor`/`findFirst`/`replaceAll`) — without opening LibreOffice's dialog.
+- [x] **Adaptive toolbar (narrow embeds):** as width shrinks, groups fold into labeled dropdowns ("Paragraph ▾"); very narrow → icon pills + an overflow "⋯" menu (with labeled VIEW/INSERT/PARAGRAPH sections). Single row, fixed height, all tools reachable at any width (`src/adaptive-toolbar.ts`).
+- [x] **Phase C — Insert:** table (row×column grid picker), image (own file picker → GraphicProvider, sized via SizePixel), hyperlink (URL/text form → sanitized HyperLinkURL) — all with their own mini-UI + programmatic UNO, no dialogs.
+- [x] Packaged as a React component (`<DocxEditor />`); a Vue wrapper is still pending (Phase 2).
 
-- [x] UNO ile menübar/araç çubukları/sidebar/statusbar gizlendi (`public/office_thread.js`).
-- [x] Kendi toolbar'ımız `.uno:Bold/Italic/Underline`, hizalama, madde işareti, undo/redo dispatch ediyor.
-- [x] `XStatusListener` ile buton aktif/pasif senkronu çalışıyor (boot sonrası boş belge ile Start Center atlanıyor).
-- [x] **Zengin toolbar (Faz A):** tutarlı inline **SVG ikon seti** (~28 ikon, bağımlılıksız, `currentColor` → aktifte accent) + paragraf stili/font/punto, renk/vurgu, kalın/italik/altı-üstü çizili, **alt/üst simge, biçim temizle, girinti ±, satır aralığı menüsü, ¶ biçim işaretleri, yazım denetimi, zoom ±, PDF dışa aktarma**. Hepsi `.uno` dispatch / state-sync ile; dialog açan komut yok.
-- [x] **Faz B — Bul & Değiştir:** kendi arama çubuğu (Ctrl+F, sonraki/önceki, Aa/sözcük, Değiştir/Tümü) + programatik UNO (`createSearchDescriptor`/`findFirst`/`replaceAll`) — LibreOffice dialog'u açmadan.
-- [x] **Uyarlanır toolbar (dar embed):** genişlik azaldıkça gruplar etiketli açılır düğmelere ("Paragraf ▾") katlanır; çok darda ikon-pill + sığmayanlar tek "⋯" menüsünde (etiketli GÖRÜNÜM/EKLE/PARAGRAF bölümleriyle). Tek satır, sabit yükseklik, her genişlikte tüm araçlar erişilebilir (`src/adaptive-toolbar.ts`).
-- [x] **Faz C — Insert:** tablo (satır×sütun grid picker), görsel (kendi dosya seçici → GraphicProvider, SizePixel ile boyut), köprü (URL/metin formu → HyperLinkURL) — hepsi kendi mini-UI + programatik UNO, dialog açmadan.
-- [ ] React/Vue bileşeni olarak paketle (`<DocxEditor />`).
+## Phase 4 — Production hardening
 
-## Faz 4 — Üretim sertleştirmesi
+- [x] WASM version-pin + same-origin self-host (`public/wasm/<pin>/`, sha256-verified `scripts/fetch-wasm.mjs` + `wasm-pin.json`; `*.wasm`/`*.data` Brotli, `Content-Encoding: br`) → offline guarantee + COEP simplification + reproducible builds.
+- [x] Robustness: request-id correlation + per-op timeouts (`src/engine/pending.ts`), boot-failure error UI + `crossOriginIsolated` guard, SW corruption-safety (never cache a truncated payload).
+- [x] License (MIT wrapper) + redistribution compliance artifacts (LICENSE, THIRD-PARTY-NOTICES.md, `licenses/`); a legal review is still recommended before wide distribution.
+- [ ] Bundle/loading optimization (cache headers, compression, pre-warming).
+- [ ] Large-document memory profile; memory64/limit tests if needed.
+- [ ] OPFS/IndexedDB session recovery and autosave.
 
-- [x] WASM'ı sürüm sabitle + same-origin self-host (`public/wasm/<pin>/`, sha256-doğrulamalı `scripts/fetch-wasm.mjs` + `wasm-pin.json`; `*.wasm`/`*.data` Brotli, `Content-Encoding: br`) → offline garantisi + COEP sadeleşmesi + tekrar-üretilebilir build.
-- [ ] Bundle/yükleme optimizasyonu (önbellek başlıkları, sıkıştırma, ön-ısıtma).
-- [ ] Büyük belge bellek profili; gerekiyorsa memory64/limit testleri.
-- [ ] Lisans (MPL/LGPL) uyum kontrolü — dağıtım modeli netleşince.
-- [ ] OPFS/IndexedDB ile oturum kurtarma ve otomatik kaydetme.
+## Known risks (track)
 
-## Bilinen riskler (takip et)
-
-- **İndirme boyutu (~52 MB):** hedef kitle için kabul edilebilir mi? Değilse → Tauri (masaüstü) kapısı açık.
-- **COOP/COEP:** üçüncü taraf siteye gömme senaryosunu zorlaştırır.
-- **WASM bellek tavanı:** çok büyük belgeler.
-- **Mobil:** büyük WASM + bellek mobilde zorlayıcı olabilir.
+- **Download size (~52 MB):** acceptable for the target audience? If not → the Tauri (desktop) door is open.
+- **COOP/COEP:** complicates the third-party embedding scenario.
+- **WASM memory ceiling:** very large documents.
+- **Mobile:** large WASM + memory may be tough on mobile.
