@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "types": []
+  },
+  "include": ["src"],
+  "comment": "*.test.ts run via `npm test` (node --experimental-strip-types); they use node: builtins + .ts import specifiers and are not part of the app build.",
+  "exclude": ["src/**/*.test.ts"]
+}

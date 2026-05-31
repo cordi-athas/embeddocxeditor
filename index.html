@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>embeddocxeditor — offline DOCX editor</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <!-- Icon sprite (inline SVG, no dependency). currentColor → inherits button color. -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <symbol id="ic-new" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M11.5 11.5v5M9 14h5"/></symbol>
+        <symbol id="ic-open" viewBox="0 0 24 24"><path d="M4 6a1 1 0 0 1 1-1h3.6a1 1 0 0 1 .7.3L11 7h7a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/></symbol>
+        <symbol id="ic-save" viewBox="0 0 24 24"><path d="M5 4h10l4 4v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1z"/><path d="M8 4v4h6V4"/><path d="M8 13h8v6H8z"/></symbol>
+        <symbol id="ic-pdf" viewBox="0 0 24 24"><path d="M13 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M13 3v5h5"/><text x="12" y="18.5" font-size="6.5" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none" font-family="system-ui,sans-serif">PDF</text></symbol>
+        <symbol id="ic-undo" viewBox="0 0 24 24"><path d="M9 7 5 11l4 4"/><path d="M5 11h9a5 5 0 0 1 0 10h-2"/></symbol>
+        <symbol id="ic-redo" viewBox="0 0 24 24"><path d="m15 7 4 4-4 4"/><path d="M19 11h-9a5 5 0 0 0 0 10h2"/></symbol>
+        <symbol id="ic-bold" viewBox="0 0 24 24"><path d="M7 5h6a3.5 3.5 0 0 1 0 7H7z"/><path d="M7 12h7a3.5 3.5 0 0 1 0 7H7z"/></symbol>
+        <symbol id="ic-italic" viewBox="0 0 24 24"><line x1="19" y1="5" x2="10" y2="5"/><line x1="14" y1="19" x2="5" y2="19"/><line x1="15" y1="5" x2="9" y2="19"/></symbol>
+        <symbol id="ic-underline" viewBox="0 0 24 24"><path d="M7 4v7a5 5 0 0 0 10 0V4"/><line x1="5" y1="20" x2="19" y2="20"/></symbol>
+        <symbol id="ic-strike" viewBox="0 0 24 24"><path d="M16 5H9.5a3 3 0 0 0-2.6 3.5"/><path d="M13.5 13a3.5 3.5 0 0 1-1 6.5H7"/><line x1="4" y1="12" x2="20" y2="12"/></symbol>
+        <symbol id="ic-subscript" viewBox="0 0 24 24"><path d="M4 6l8 9M12 6 4 15"/><text x="15" y="21" font-size="9" fill="currentColor" stroke="none" font-family="system-ui,sans-serif">2</text></symbol>
+        <symbol id="ic-superscript" viewBox="0 0 24 24"><path d="M4 9l8 9M12 9 4 18"/><text x="15" y="9" font-size="9" fill="currentColor" stroke="none" font-family="system-ui,sans-serif">2</text></symbol>
+        <symbol id="ic-fontcolor" viewBox="0 0 24 24"><path d="M5 18 10.5 6h3L19 18"/><line x1="7.5" y1="14" x2="16.5" y2="14"/></symbol>
+        <symbol id="ic-highlight" viewBox="0 0 24 24"><path d="M4 21h7"/><path d="M14 4l6 6-8 8H7l-1-4z"/><line x1="13" y1="5" x2="19" y2="11"/></symbol>
+        <symbol id="ic-clear" viewBox="0 0 24 24"><path d="M7 20H4l4-4"/><path d="M6 16 16 6a2 2 0 0 1 3 0l1 1a2 2 0 0 1 0 3l-9 9z"/><line x1="9" y1="13" x2="14" y2="18"/></symbol>
+        <symbol id="ic-align-left" viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="11" x2="14" y2="11"/><line x1="4" y1="16" x2="18" y2="16"/><line x1="4" y1="21" x2="12" y2="21"/></symbol>
+        <symbol id="ic-align-center" viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="11" x2="17" y2="11"/><line x1="5" y1="16" x2="19" y2="16"/><line x1="8" y1="21" x2="16" y2="21"/></symbol>
+        <symbol id="ic-align-right" viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="10" y1="11" x2="20" y2="11"/><line x1="6" y1="16" x2="20" y2="16"/><line x1="12" y1="21" x2="20" y2="21"/></symbol>
+        <symbol id="ic-align-justify" viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="11" x2="20" y2="11"/><line x1="4" y1="16" x2="20" y2="16"/><line x1="4" y1="21" x2="20" y2="21"/></symbol>
+        <symbol id="ic-bullet" viewBox="0 0 24 24"><circle cx="5" cy="7" r="1.4" fill="currentColor" stroke="none"/><circle cx="5" cy="13" r="1.4" fill="currentColor" stroke="none"/><circle cx="5" cy="19" r="1.4" fill="currentColor" stroke="none"/><line x1="9" y1="7" x2="20" y2="7"/><line x1="9" y1="13" x2="20" y2="13"/><line x1="9" y1="19" x2="20" y2="19"/></symbol>
+        <symbol id="ic-numbered" viewBox="0 0 24 24"><text x="2" y="9" font-size="7" fill="currentColor" stroke="none" font-family="system-ui,sans-serif">1</text><text x="2" y="15" font-size="7" fill="currentColor" stroke="none" font-family="system-ui,sans-serif">2</text><text x="2" y="21" font-size="7" fill="currentColor" stroke="none" font-family="system-ui,sans-serif">3</text><line x1="9" y1="7" x2="20" y2="7"/><line x1="9" y1="13" x2="20" y2="13"/><line x1="9" y1="19" x2="20" y2="19"/></symbol>
+        <symbol id="ic-indent-inc" viewBox="0 0 24 24"><line x1="10" y1="6" x2="20" y2="6"/><line x1="10" y1="12" x2="20" y2="12"/><line x1="10" y1="18" x2="20" y2="18"/><polyline points="4 8 8 12 4 16"/></symbol>
+        <symbol id="ic-indent-dec" viewBox="0 0 24 24"><line x1="10" y1="6" x2="20" y2="6"/><line x1="10" y1="12" x2="20" y2="12"/><line x1="10" y1="18" x2="20" y2="18"/><polyline points="8 8 4 12 8 16"/></symbol>
+        <symbol id="ic-linespacing" viewBox="0 0 24 24"><line x1="10" y1="6" x2="20" y2="6"/><line x1="10" y1="12" x2="20" y2="12"/><line x1="10" y1="18" x2="20" y2="18"/><path d="M4 6v12"/><polyline points="1.5 8.5 4 6 6.5 8.5"/><polyline points="1.5 15.5 4 18 6.5 15.5"/></symbol>
+        <symbol id="ic-marks" viewBox="0 0 24 24"><path d="M13 4v16"/><path d="M17 4v16"/><path d="M17 4H10a4 4 0 0 0 0 8h3"/></symbol>
+        <symbol id="ic-spell" viewBox="0 0 24 24"><text x="2" y="14" font-size="9" fill="currentColor" stroke="none" font-family="system-ui,sans-serif" font-weight="600">ABC</text><polyline points="13 19 16 22 22 15"/></symbol>
+        <symbol id="ic-zoom-in" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><line x1="20" y1="20" x2="14.5" y2="14.5"/><line x1="10" y1="7" x2="10" y2="13"/><line x1="7" y1="10" x2="13" y2="10"/></symbol>
+        <symbol id="ic-zoom-out" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><line x1="20" y1="20" x2="14.5" y2="14.5"/><line x1="7" y1="10" x2="13" y2="10"/></symbol>
+        <symbol id="ic-search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><line x1="20" y1="20" x2="14.5" y2="14.5"/></symbol>
+        <symbol id="ic-chev-up" viewBox="0 0 24 24"><polyline points="6 14 12 8 18 14"/></symbol>
+        <symbol id="ic-chev-down" viewBox="0 0 24 24"><polyline points="6 10 12 16 18 10"/></symbol>
+        <symbol id="ic-table" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="1"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></symbol>
+        <symbol id="ic-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.7" fill="currentColor" stroke="none"/><path d="M21 16l-5-5L6 20"/></symbol>
+        <symbol id="ic-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></symbol>
+        <symbol id="ic-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"/></symbol>
+        <symbol id="ic-file" viewBox="0 0 24 24"><path d="M13 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M13 3v5h5"/></symbol>
+      </defs>
+    </svg>
+
+    <div class="dxe loading" id="dxe">
+      <div class="dxe-toolbar" role="toolbar" aria-label="Biçimlendirme">
+        <div class="dxe-grp">
+          <button id="btnFile" class="dxe-pill" disabled>
+            <svg class="ic"><use href="#ic-file" /></svg>
+            <span class="dxe-pill-label" id="lblFile">File</span>
+            <svg class="ic dxe-caret"><use href="#ic-chev-down" /></svg>
+          </button>
+        </div>
+
+        <span class="dxe-sep"></span>
+
+        <div class="dxe-grp">
+          <button data-uno=".uno:Undo" disabled title="Geri al" class="ico"><svg class="ic"><use href="#ic-undo" /></svg></button>
+          <button data-uno=".uno:Redo" disabled title="Yinele" class="ico"><svg class="ic"><use href="#ic-redo" /></svg></button>
+        </div>
+
+        <span class="dxe-sep"></span>
+
+        <div class="dxe-grp" data-collapse="style">
+          <select data-uno=".uno:StyleApply" data-arg="Style" data-family="ParagraphStyles" disabled title="Paragraf stili" aria-label="Paragraf stili">
+            <option value="Default Paragraph Style">Normal</option>
+            <option value="Title">Başlık</option>
+            <option value="Subtitle">Alt başlık</option>
+            <option value="Heading 1">Başlık 1</option>
+            <option value="Heading 2">Başlık 2</option>
+            <option value="Heading 3">Başlık 3</option>
+            <option value="Quotations">Alıntı</option>
+          </select>
+          <select data-uno=".uno:CharFontName" data-arg="CharFontName" data-state="CharFontName" disabled title="Yazı tipi" aria-label="Yazı tipi">
+            <option>Liberation Serif</option>
+            <option>Liberation Sans</option>
+            <option>Liberation Mono</option>
+            <option>Carlito</option>
+            <option>Caladea</option>
+            <option>DejaVu Sans</option>
+            <option>DejaVu Serif</option>
+          </select>
+          <select data-uno=".uno:FontHeight" data-arg="FontHeight.Height" data-type="number" data-state="FontHeight" disabled title="Punto" aria-label="Punto" class="sz">
+            <option>8</option><option>9</option><option>10</option><option>11</option>
+            <option>12</option><option>14</option><option>16</option><option>18</option>
+            <option>20</option><option>24</option><option>28</option><option>36</option>
+            <option>48</option><option>72</option>
+          </select>
+        </div>
+
+        <span class="dxe-sep"></span>
+
+        <div class="dxe-grp" data-collapse="format">
+          <button data-uno=".uno:Bold" data-state="Bold" disabled title="Kalın" class="ico"><svg class="ic"><use href="#ic-bold" /></svg></button>
+          <button data-uno=".uno:Italic" data-state="Italic" disabled title="İtalik" class="ico"><svg class="ic"><use href="#ic-italic" /></svg></button>
+          <button data-uno=".uno:Underline" data-state="Underline" disabled title="Altı çizili" class="ico"><svg class="ic"><use href="#ic-underline" /></svg></button>
+          <button data-uno=".uno:Strikeout" data-state="Strikeout" disabled title="Üstü çizili" class="ico"><svg class="ic"><use href="#ic-strike" /></svg></button>
+          <button data-uno=".uno:SubScript" data-state="SubScript" disabled title="Alt simge" class="ico"><svg class="ic"><use href="#ic-subscript" /></svg></button>
+          <button data-uno=".uno:SuperScript" data-state="SuperScript" disabled title="Üst simge" class="ico"><svg class="ic"><use href="#ic-superscript" /></svg></button>
+          <label class="color" title="Yazı rengi">
+            <svg class="ic"><use href="#ic-fontcolor" /></svg>
+            <input type="color" data-uno=".uno:FontColor" data-arg="FontColor" data-color value="#111827" disabled />
+          </label>
+          <label class="color" title="Vurgu rengi">
+            <svg class="ic"><use href="#ic-highlight" /></svg>
+            <input type="color" data-uno=".uno:CharBackColor" data-arg="CharBackColor" data-color value="#fde047" disabled />
+          </label>
+          <button data-uno=".uno:ResetAttributes" disabled title="Biçimi temizle" class="ico"><svg class="ic"><use href="#ic-clear" /></svg></button>
+        </div>
+
+        <span class="dxe-sep"></span>
+
+        <div class="dxe-grp" data-collapse="paragraph">
+          <button data-uno=".uno:LeftPara" data-state="LeftPara" disabled title="Sola hizala" class="ico"><svg class="ic"><use href="#ic-align-left" /></svg></button>
+          <button data-uno=".uno:CenterPara" data-state="CenterPara" disabled title="Ortala" class="ico"><svg class="ic"><use href="#ic-align-center" /></svg></button>
+          <button data-uno=".uno:RightPara" data-state="RightPara" disabled title="Sağa hizala" class="ico"><svg class="ic"><use href="#ic-align-right" /></svg></button>
+          <button data-uno=".uno:JustifyPara" data-state="JustifyPara" disabled title="İki yana yasla" class="ico"><svg class="ic"><use href="#ic-align-justify" /></svg></button>
+          <button data-uno=".uno:DefaultBullet" data-state="DefaultBullet" disabled title="Madde işareti" class="ico"><svg class="ic"><use href="#ic-bullet" /></svg></button>
+          <button data-uno=".uno:DefaultNumbering" data-state="DefaultNumbering" disabled title="Numaralı liste" class="ico"><svg class="ic"><use href="#ic-numbered" /></svg></button>
+          <button data-uno=".uno:DecrementIndent" disabled title="Girintiyi azalt" class="ico"><svg class="ic"><use href="#ic-indent-dec" /></svg></button>
+          <button data-uno=".uno:IncrementIndent" disabled title="Girintiyi artır" class="ico"><svg class="ic"><use href="#ic-indent-inc" /></svg></button>
+          <select data-menu disabled title="Satır aralığı" aria-label="Satır aralığı" class="menu">
+            <option value="" disabled selected>↕</option>
+            <option data-uno=".uno:SpacePara1">Tek (1.0)</option>
+            <option data-uno=".uno:SpacePara15">1.5</option>
+            <option data-uno=".uno:SpacePara2">Çift (2.0)</option>
+          </select>
+        </div>
+
+        <span class="dxe-sep"></span>
+
+        <div class="dxe-grp" data-collapse="insert">
+          <button id="btnTable" disabled title="Tablo ekle" class="ico"><svg class="ic"><use href="#ic-table" /></svg></button>
+          <button id="btnImage" disabled title="Görsel ekle" class="ico"><svg class="ic"><use href="#ic-image" /></svg></button>
+          <button id="btnLink" disabled title="Köprü ekle" class="ico"><svg class="ic"><use href="#ic-link" /></svg></button>
+        </div>
+
+        <span class="dxe-sep"></span>
+
+        <div class="dxe-grp" data-collapse="view">
+          <button id="btnFind" disabled title="Bul ve Değiştir (Ctrl+F)" class="ico"><svg class="ic"><use href="#ic-search" /></svg></button>
+          <button data-uno=".uno:ControlCodes" data-state="ControlCodes" disabled title="Biçim işaretleri (¶)" class="ico"><svg class="ic"><use href="#ic-marks" /></svg></button>
+          <button data-uno=".uno:SpellOnline" data-state="SpellOnline" disabled title="Yazım denetimi" class="ico"><svg class="ic"><use href="#ic-spell" /></svg></button>
+          <button data-uno=".uno:ZoomMinus" disabled title="Uzaklaştır" class="ico"><svg class="ic"><use href="#ic-zoom-out" /></svg></button>
+          <button data-uno=".uno:ZoomPlus" disabled title="Yakınlaştır" class="ico"><svg class="ic"><use href="#ic-zoom-in" /></svg></button>
+        </div>
+
+        <span class="dxe-status" id="status"></span>
+        <span class="dxe-dot" id="dirtyDot" title="Kaydedilmemiş değişiklik"></span>
+      </div>
+
+      <div class="dxe-stage">
+        <canvas
+          id="qtcanvas"
+          contenteditable="true"
+          oncontextmenu="event.preventDefault()"
+          onkeydown="event.preventDefault()"
+        ></canvas>
+
+        <!-- File menu (New / Open / Save / PDF). Buttons keep their ids → handlers unchanged. -->
+        <div class="dxe-dd dxe-menu" id="fileMenu" hidden>
+          <button id="btnNew" class="dxe-mi" disabled><svg class="ic"><use href="#ic-new" /></svg><span id="miNew">New document</span></button>
+          <button id="btnOpen" class="dxe-mi" disabled><svg class="ic"><use href="#ic-open" /></svg><span id="miOpen">Open DOCX</span></button>
+          <button id="btnSave" class="dxe-mi" disabled><svg class="ic"><use href="#ic-save" /></svg><span id="miSave">Save as DOCX</span></button>
+          <button id="btnPdf" class="dxe-mi" disabled><svg class="ic"><use href="#ic-pdf" /></svg><span id="miPdf">Export as PDF</span></button>
+        </div>
+
+        <!-- Our own Find & Replace bar (no LibreOffice dialog). -->
+        <div class="dxe-find" id="findBar" hidden>
+          <div class="dxe-find-row">
+            <svg class="ic dxe-find-ic"><use href="#ic-search" /></svg>
+            <input id="findInput" type="text" placeholder="Bul" autocomplete="off" spellcheck="false" />
+            <span class="dxe-find-count" id="findCount"></span>
+            <button id="findPrev" class="ico" title="Önceki (Shift+Enter)"><svg class="ic"><use href="#ic-chev-up" /></svg></button>
+            <button id="findNext" class="ico" title="Sonraki (Enter)"><svg class="ic"><use href="#ic-chev-down" /></svg></button>
+            <button id="findClose" class="ico" title="Kapat (Esc)">✕</button>
+          </div>
+          <div class="dxe-find-row">
+            <input id="replaceInput" type="text" placeholder="Değiştir" autocomplete="off" spellcheck="false" />
+            <button id="replaceOne" class="dxe-find-btn">Değiştir</button>
+            <button id="replaceAllBtn" class="dxe-find-btn">Tümü</button>
+            <label class="dxe-chk"><input type="checkbox" id="matchCase" /> <span id="lblMatchCase">Aa</span></label>
+            <label class="dxe-chk"><input type="checkbox" id="wholeWord" /> <span id="lblWholeWord">Word</span></label>
+          </div>
+        </div>
+
+        <!-- Insert popovers (anchored under their toolbar button on open). -->
+        <div class="dxe-pop" id="tablePop" hidden>
+          <div class="dxe-grid" id="tableGrid"></div>
+          <div class="dxe-pop-label" id="tableGridLabel">Tablo ekle</div>
+        </div>
+        <div class="dxe-pop dxe-pop-link" id="linkPop" hidden>
+          <input id="linkUrl" type="text" placeholder="https://..." autocomplete="off" spellcheck="false" />
+          <input id="linkText" type="text" placeholder="Görünen metin (opsiyonel)" autocomplete="off" spellcheck="false" />
+          <div class="dxe-pop-row">
+            <button id="linkApply" class="dxe-find-btn">Ekle</button>
+            <button id="linkCancel" class="dxe-find-btn">İptal</button>
+          </div>
+        </div>
+        <input id="imageFile" type="file" accept="image/*" hidden />
+
+        <div class="dxe-overlay" aria-live="polite">
+          <div class="dxe-spinner"></div>
+          <div class="dxe-overlay-text" id="loadingText">Loading…</div>
+          <button class="dxe-reload" id="reloadBtn" type="button" hidden>Reload</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

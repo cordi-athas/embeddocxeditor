@@ -1,0 +1,37 @@
+{
+  "name": "@embeddocx/react",
+  "version": "0.1.0",
+  "description": "React component for embedding the offline, full-fidelity DOCX editor (LibreOffice WASM).",
+  "license": "MIT",
+  "author": "embeddocxeditor contributors",
+  "type": "module",
+  "files": ["dist", "LICENSE", "README.md"],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+      "require": { "types": "./dist/index.d.cts", "default": "./dist/index.cjs" }
+    }
+  },
+  "sideEffects": false,
+  "engines": { "node": ">=18" },
+  "publishConfig": { "access": "public" },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["docx", "word", "editor", "react", "libreoffice", "wasm", "offline"],
+  "peerDependencies": {
+    "react": ">=17 <20"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "react": "^18.3.1",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.0"
+  }
+}

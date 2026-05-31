@@ -1,0 +1,18 @@
+node_modules/
+dist/
+
+# Vendored from the `zetajs` npm package by `npm run copy:vendor`.
+public/vendor/
+
+# Pinned LibreOffice-WASM payload (~52 MB) fetched by `npm run fetch:wasm`.
+# Reproduced from scripts/wasm-pin.json (sha256-verified) — no need to commit.
+public/wasm/
+
+# Editor / OS noise
+.DS_Store
+*.log
+.vite/
+
+# Playwright MCP test artifacts
+.playwright-mcp/
+*.png

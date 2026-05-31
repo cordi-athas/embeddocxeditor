@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Host demo — embeddocxeditor'ı iframe ile gömme</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        font: 14px/1.3 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        background: #0f172a;
+        color: #e2e8f0;
+      }
+      .host-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        background: #111827;
+        border-bottom: 1px solid #1f2937;
+      }
+      .host-bar strong { color: #38bdf8; }
+      .host-bar .note { color: #64748b; font-size: 12px; }
+      .host-bar .spacer { flex: 1; }
+      .host-bar button {
+        padding: 7px 12px;
+        border: 1px solid #334155;
+        border-radius: 7px;
+        background: #1e293b;
+        color: #e2e8f0;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      .host-bar button:hover { background: #334155; }
+      #dirty { font-size: 12px; padding-left: 4px; }
+      #dirty.clean { color: #34d399; }
+      #dirty.dirty { color: #fbbf24; }
+      .frame-wrap { flex: 1; min-height: 0; padding: 16px; }
+      iframe {
+        width: 100%;
+        height: 100%;
+        border: 0;
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="host-bar">
+      <strong>Host Uygulaması</strong>
+      <span class="note">(bu sayfa editörü iframe + SDK ile gömüyor — editörün kendi kodu değil)</span>
+      <span class="spacer"></span>
+      <button id="btnLoad">Belge Yükle</button>
+      <button id="btnSave">DOCX İndir</button>
+      <button id="btnTheme">Tema: Mavi</button>
+      <span id="dirty" class="clean">● kaydedildi</span>
+      <input id="file" type="file" accept=".docx,.odt,.rtf" hidden />
+    </div>
+
+    <div class="frame-wrap">
+      <iframe id="editor" src="/" allow="cross-origin-isolated; clipboard-write"></iframe>
+    </div>
+
+    <script type="module">
+      import { DocxEditorClient } from '/embed-sdk.js';
+
+      const iframe = document.getElementById('editor');
+      const dirty = document.getElementById('dirty');
+      const setClean = () => {
+        dirty.textContent = '● kaydedildi';
+        dirty.className = 'clean';
+      };
+      const setDirty = () => {
+        dirty.textContent = '● kaydedilmedi';
+        dirty.className = 'dirty';
+      };
+
+      const editor = new DocxEditorClient(iframe);
+      await editor.ready();
+
+      // Dirty state is driven entirely by the editor's events.
+      editor.on('change', setDirty);
+      editor.on('clean', setClean);
+      // Ctrl/Cmd+S inside the editor → host persists. (No more /home/web_user trap.)
+      editor.on('save', () => persist());
+
+      // Pull the current document from the editor and "persist" it (here: download).
+      async function persist() {
+        const bytes = await editor.getDocx(); // editor emits 'clean' afterwards
+        const blob = new Blob([bytes], {
+          type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'belge.docx';
+        a.click();
+        URL.revokeObjectURL(a.href);
+      }
+
+      // Host "Belge Yükle": read a file and hand the bytes to the editor.
+      document.getElementById('btnLoad').onclick = () => document.getElementById('file').click();
+      document.getElementById('file').onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        await editor.loadDocument(await file.arrayBuffer(), { name: file.name }); // 'clean' via event
+      };
+
+      // Host "DOCX İndir": same path as Ctrl+S.
+      document.getElementById('btnSave').onclick = () => persist();
+
+      // Host re-theming the embedded editor on the fly.
+      let blue = false;
+      document.getElementById('btnTheme').onclick = (ev) => {
+        blue = !blue;
+        editor.setTheme(blue ? { '--dxe-accent': '#2563eb' } : { '--dxe-accent': '#059669' });
+        ev.target.textContent = blue ? 'Tema: Yeşil' : 'Tema: Mavi';
+      };
+    </script>
+  </body>
+</html>

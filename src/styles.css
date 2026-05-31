@@ -1,0 +1,408 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   embeddocxeditor — all styles scoped under `.dxe` so the module can be
+   embedded in any host page without CSS conflicts. Theme via CSS variables.
+   ──────────────────────────────────────────────────────────────────────── */
+
+.dxe {
+  /* Theme tokens — override these from the host to re-skin the editor. */
+  --dxe-surface: #ffffff;
+  --dxe-fg: #1f2937;
+  --dxe-muted: #9aa3af;
+  --dxe-border: #e6e8eb;
+  --dxe-hover: #f3f4f6;
+  --dxe-active-bg: #e7f7f0;
+  --dxe-accent: #059669;
+  --dxe-stage-bg: #eceef0;
+  --dxe-radius: 7px;
+  --dxe-toolbar-h: 46px;
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  background: var(--dxe-stage-bg);
+  color: var(--dxe-fg);
+  font: 13px/1.2 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.dxe *,
+.dxe *::before,
+.dxe *::after { box-sizing: border-box; }
+
+/* Full-page (standalone) usage. When embedded in a sized container, `.dxe`
+   simply fills it (100% width/height above). */
+html, body { margin: 0; height: 100%; }
+body > .dxe { height: 100vh; }
+
+/* ── Toolbar ─────────────────────────────────────────────────────────────
+   Single row; scrolls horizontally on narrow embeds (fixed height). */
+.dxe-toolbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: var(--dxe-toolbar-h);
+  padding: 0 8px;
+  background: var(--dxe-surface);
+  border-bottom: 1px solid var(--dxe-border);
+  /* No scroll: groups fold into labeled dropdowns (adaptive-toolbar.ts). */
+  overflow: hidden;
+}
+
+.dxe-grp { display: flex; align-items: center; gap: 2px; flex: none; }
+.dxe-grp[hidden] { display: none; }
+.dxe-sep { flex: none; width: 1px; height: 22px; background: var(--dxe-border); margin: 0 6px; }
+
+/* Collapsed-group pill ("Paragraf ▾") — shown when a group folds away. */
+.dxe-pill {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 30px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--dxe-radius);
+  background: transparent;
+  color: var(--dxe-fg);
+  cursor: pointer;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.dxe-pill[hidden] { display: none; }
+.dxe-pill:hover { background: var(--dxe-hover); }
+.dxe-pill .ic { width: 16px; height: 16px; }
+.dxe-caret { opacity: 0.6; }
+
+/* Narrowest widths: icon-only pills (labels hidden, dropdown stays labeled). */
+.dxe-compact .dxe-pill-label { display: none; }
+.dxe-compact .dxe-pill { padding: 0 6px; gap: 2px; }
+
+/* Dropdown holding a folded group's controls. */
+.dxe-dd {
+  position: fixed;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  max-width: 320px;
+  padding: 8px;
+  background: var(--dxe-surface);
+  border: 1px solid var(--dxe-border);
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+.dxe-dd[hidden] { display: none; }
+
+/* "⋯" overflow menu: stacked labeled sections. */
+.dxe-dd-more {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 10px;
+  min-width: 200px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.dxe-dd-sec { display: flex; flex-direction: column; gap: 4px; }
+.dxe-dd-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--dxe-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.dxe-dd-controls { display: flex; flex-wrap: wrap; gap: 4px; }
+
+/* File menu — vertical list of labeled actions. */
+.dxe-menu {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 2px;
+  min-width: 196px;
+  padding: 6px;
+}
+.dxe-mi {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dxe-fg);
+  cursor: pointer;
+  font-size: 13px;
+  text-align: left;
+}
+.dxe-mi:hover:not(:disabled) { background: var(--dxe-hover); }
+.dxe-mi:disabled { color: var(--dxe-muted); opacity: 0.55; cursor: default; }
+.dxe-mi .ic { width: 17px; height: 17px; flex: none; }
+
+/* Buttons — ghost style, accent when active. */
+.dxe button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: var(--dxe-radius);
+  background: transparent;
+  color: var(--dxe-fg);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.dxe button.ico { padding: 0 6px; }
+
+/* SVG icons — stroke-based, inherit the button color (accent when active). */
+.dxe svg.ic {
+  width: 18px;
+  height: 18px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.dxe button:hover:not(:disabled) { background: var(--dxe-hover); }
+.dxe button:disabled { color: var(--dxe-muted); opacity: 0.55; cursor: default; }
+.dxe button.active { background: var(--dxe-active-bg); color: var(--dxe-accent); }
+
+/* Selects */
+.dxe select {
+  flex: none;
+  height: 30px;
+  max-width: 148px;
+  border: 1px solid var(--dxe-border);
+  border-radius: var(--dxe-radius);
+  background: var(--dxe-surface);
+  color: var(--dxe-fg);
+  padding: 0 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.dxe select.sz { max-width: 56px; }
+.dxe select.menu { max-width: 56px; text-align: center; }
+.dxe select:disabled { color: var(--dxe-muted); opacity: 0.55; cursor: default; }
+.dxe select:focus-visible { outline: 2px solid var(--dxe-accent); outline-offset: -1px; }
+
+/* Color pickers — icon with a thin colored bar below (Word-style) */
+.dxe .color {
+  flex: none;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 30px;
+  height: 30px;
+  padding-top: 4px;
+  border-radius: var(--dxe-radius);
+  cursor: pointer;
+}
+.dxe .color:hover { background: var(--dxe-hover); }
+.dxe .color svg.ic { width: 15px; height: 15px; }
+.dxe .color:has(input:disabled) { opacity: 0.55; cursor: default; }
+.dxe .color input[type="color"] {
+  width: 18px;
+  height: 4px;
+  border: 0;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+}
+
+/* Transient status (saving / saved / error). Hidden on narrow embeds. */
+.dxe-status {
+  flex: none;
+  margin-left: auto;
+  padding-left: 10px;
+  color: var(--dxe-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+@media (max-width: 760px) { .dxe-status { display: none; } }
+
+/* Unsaved-changes indicator (amber dot). Shown only when the doc is dirty. */
+.dxe-dot {
+  flex: none;
+  display: none;
+  width: 8px;
+  height: 8px;
+  margin-left: 8px;
+  border-radius: 50%;
+  background: #f59e0b;
+}
+.dxe-status:empty + .dxe-dot { margin-left: auto; }
+.dxe.is-dirty .dxe-dot { display: block; }
+
+/* ── Stage (the document canvas) ─────────────────────────────────────────── */
+.dxe-stage { position: relative; flex: 1; min-height: 0; }
+.dxe-stage #qtcanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  padding: 0;
+}
+
+/* ── Loading overlay — masks LibreOffice's startup (Start Center) entirely ── */
+.dxe-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: var(--dxe-surface);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease;
+}
+.dxe.loading #qtcanvas { visibility: hidden; }
+.dxe.loading .dxe-overlay { opacity: 1; visibility: visible; }
+
+/* Terminal error state (boot failed / not cross-origin isolated / timeout):
+   keep the canvas hidden, stop the spinner, show the message + a reload button. */
+.dxe.error #qtcanvas { visibility: hidden; }
+.dxe.error .dxe-overlay { opacity: 1; visibility: visible; }
+.dxe.error .dxe-spinner { display: none; }
+.dxe.error .dxe-overlay-text { color: var(--dxe-fg); max-width: 36ch; text-align: center; line-height: 1.45; }
+
+.dxe-spinner {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid var(--dxe-border);
+  border-top-color: var(--dxe-accent);
+  animation: dxe-spin 0.8s linear infinite;
+}
+@keyframes dxe-spin { to { transform: rotate(360deg); } }
+.dxe-overlay-text { color: var(--dxe-muted); font-size: 13px; }
+/* `.dxe ` prefix so these win over the generic `.dxe button` toolbar reset. */
+.dxe .dxe-reload {
+  font: inherit;
+  font-size: 13px;
+  padding: 7px 16px;
+  border: 1px solid transparent;
+  border-radius: var(--dxe-radius);
+  background: var(--dxe-accent);
+  color: #fff;
+  cursor: pointer;
+}
+.dxe .dxe-reload:hover:not(:disabled) {
+  background: var(--dxe-accent);
+  filter: brightness(1.05);
+}
+
+/* ── Find & Replace bar (our own, floating top-right of the stage) ───────── */
+.dxe-find {
+  position: absolute;
+  top: 10px;
+  right: 16px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--dxe-surface);
+  border: 1px solid var(--dxe-border);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+.dxe-find[hidden] { display: none; }
+.dxe-find-row { display: flex; align-items: center; gap: 6px; }
+.dxe-find-ic { width: 16px; height: 16px; color: var(--dxe-muted); flex: none; }
+.dxe-find input[type="text"] {
+  height: 28px;
+  width: 190px;
+  border: 1px solid var(--dxe-border);
+  border-radius: 6px;
+  padding: 0 8px;
+  font-size: 13px;
+  color: var(--dxe-fg);
+  background: #fff;
+}
+.dxe-find input[type="text"]:focus-visible {
+  outline: 2px solid var(--dxe-accent);
+  outline-offset: -1px;
+}
+.dxe-find-count { font-size: 12px; color: var(--dxe-muted); min-width: 64px; }
+.dxe-find .ico { min-width: 28px; height: 28px; }
+.dxe-find-btn {
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--dxe-border);
+  border-radius: 6px;
+  background: var(--dxe-surface);
+  color: var(--dxe-fg);
+  cursor: pointer;
+  font-size: 13px;
+}
+.dxe-find-btn:hover { background: var(--dxe-hover); }
+.dxe-chk {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  color: var(--dxe-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* ── Insert popovers (table grid / link form) ───────────────────────────── */
+.dxe-pop {
+  position: fixed;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--dxe-surface);
+  border: 1px solid var(--dxe-border);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+.dxe-pop[hidden] { display: none; }
+.dxe-pop-link { width: 244px; }
+.dxe-pop-link input[type="text"] {
+  height: 28px;
+  border: 1px solid var(--dxe-border);
+  border-radius: 6px;
+  padding: 0 8px;
+  font-size: 13px;
+  color: var(--dxe-fg);
+  background: #fff;
+}
+.dxe-pop-link input:focus-visible { outline: 2px solid var(--dxe-accent); outline-offset: -1px; }
+.dxe-pop-row { display: flex; gap: 6px; justify-content: flex-end; }
+.dxe-pop-label { font-size: 12px; color: var(--dxe-muted); text-align: center; }
+.dxe-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 16px);
+  grid-auto-rows: 16px;
+  gap: 2px;
+}
+.dxe-grid-cell {
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--dxe-border);
+  border-radius: 2px;
+  background: #fff;
+  cursor: pointer;
+}
+.dxe-grid-cell.on { background: var(--dxe-active-bg); border-color: var(--dxe-accent); }

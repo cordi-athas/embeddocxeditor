@@ -1,0 +1,15 @@
+{
+  "pin": "2025-05-13",
+  "source": "https://cdn.zetaoffice.net/zetaoffice_latest/",
+  "product": "LibreOffice WebAssembly (ZetaOffice) build",
+  "note": "Frozen snapshot of the ZetaOffice CDN `_latest` payload. `_latest` is a rolling alias (rebuilt over time, ~20 min cache) — relying on it makes boots non-reproducible and risks silent breakage. This manifest pins the EXACT bytes by sha256 so every build serves the same, verified runtime. Identified by build date (Last-Modified 2025-05-13 15:18 UTC); the upstream payload carries no extractable product-version string. NOTE: soffice.wasm and soffice.data are stored Brotli-compressed (bytes/sha256 below are of the compressed form). They MUST be served with `Content-Encoding: br` (handled by vite.config.ts in dev/preview; your production host must do the same).",
+  "dir": "public/wasm",
+  "files": [
+    { "name": "soffice.js",               "bytes": 858124,   "sha256": "5143e5354f470b87f86ba272bcfef857bd13e6f07b59666e48a7ccb89643cd77" },
+    { "name": "soffice.wasm",             "bytes": 36279250, "sha256": "a11808aaba3c9a4412a865bde645247fd9d0b262b5baa0680a9fced29a8656e4" },
+    { "name": "soffice.data",             "bytes": 15891013, "sha256": "9d3c1cf3c904ce570905052ba6844f3383fde93ad1267b65a3ae4b236db2fd05" },
+    { "name": "soffice.data.js.metadata", "bytes": 215180,   "sha256": "5d9d909d0b9b38443c0f19704032d0fc12d654f6c9c24c2c3b237739c4848ae3" },
+    { "name": "qtloader.js",              "bytes": 22298,    "sha256": "a7ea78ba0d7fc5e1ddd7ec6d9c3a0af883be243bab49c37241a3d1c71dcaf201" },
+    { "name": "qtlogo.svg",               "bytes": 3047,     "sha256": "6f3a9cc391a27543b32571343447ef0e899645742d27eebae8d8fda57d81a066" }
+  ]
+}
