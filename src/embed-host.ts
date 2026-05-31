@@ -18,7 +18,7 @@ import { resolveAllowedOrigins, decideHostTrust } from './embed-trust';
  *
  * Protocol (see also public/embed-sdk.js — the host-facing wrapper):
  *   Host → Editor:  { source:'dxe-host', v:1, id?, type, payload? }
- *     type: 'load' | 'getDocx' | 'new' | 'setTheme' | 'dispatch'
+ *     type: 'load' | 'getDocx' | 'new' | 'setTheme' | 'dispatch' | 'insertText' | 'mergeFields'
  *   Editor → Host:  { source:'dxe', v:1, type, ... }
  *     type: 'ready'                              — editor is up, accepting commands
  *         | 'change'                             — document edited (debounced)
@@ -161,6 +161,19 @@ export function installHostBridge(
           }
           editor.dispatch(payload.uno, payload.args);
           reply(id, true);
+          break;
+        }
+        case 'insertText': {
+          editor.insertText(String(payload?.text ?? ''));
+          reply(id, true);
+          break;
+        }
+        case 'mergeFields': {
+          const count = await editor.mergeFields(
+            (payload?.data ?? {}) as Record<string, string>,
+            payload?.options ?? {},
+          );
+          reply(id, true, { count });
           break;
         }
         default:

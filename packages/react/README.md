@@ -109,7 +109,8 @@ If the page isn't isolated, the component logs a warning and the editor won't bo
 ### Ref handle (`DocxEditorHandle`)
 
 `getDocx()` · `loadDocument(data, opts?)` · `newDocument()` · `setTheme(vars)` ·
-`dispatch(uno, args?)` · `ready()` · `client`
+`dispatch(uno, args?)` · `insertText(text)` · `mergeFields(data, opts?) → number` ·
+`ready()` · `client`
 
 ### Non-React usage
 

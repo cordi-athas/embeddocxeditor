@@ -9,6 +9,13 @@ export interface DocxEditorHandle {
   newDocument(): Promise<unknown>;
   setTheme(vars: Record<string, string>): Promise<unknown>;
   dispatch(uno: string, args?: unknown): Promise<unknown>;
+  /** Inject plain text at the cursor. */
+  insertText(text: string): Promise<unknown>;
+  /** Fill `{{key}}` placeholders with data; resolves to the replacement count. */
+  mergeFields(
+    data: Record<string, string>,
+    options?: { open?: string; close?: string; matchCase?: boolean },
+  ): Promise<number>;
   ready(): Promise<void>;
   /** Escape hatch to the underlying client. */
   readonly client: DocxEditorClient | null;
@@ -83,6 +90,8 @@ export const DocxEditor = forwardRef<DocxEditorHandle, DocxEditorProps>(function
       newDocument: () => requireClient().newDocument(),
       setTheme: (vars) => requireClient().setTheme(vars),
       dispatch: (uno, args) => requireClient().dispatch(uno, args),
+      insertText: (text) => requireClient().insertText(text),
+      mergeFields: (data, options) => requireClient().mergeFields(data, options),
       ready: () => requireClient().ready(),
       get client() {
         return clientRef.current;

@@ -96,6 +96,21 @@ export class DocxEditorClient {
     return this._request('dispatch', { uno, args });
   }
 
+  /** Inject plain text at the cursor. */
+  insertText(text) {
+    return this._request('insertText', { text });
+  }
+
+  /**
+   * Fill template placeholders with data: every `{{key}}` (configurable via
+   * `options.open`/`options.close`) is replaced with `data[key]`.
+   * @returns {Promise<number>} total replacements made
+   */
+  async mergeFields(data, options) {
+    const { count } = await this._request('mergeFields', { data, options });
+    return count;
+  }
+
   // ── internals ──────────────────────────────────────────────────────────
   _emit(event, ...args) {
     (this._listeners[event] || []).forEach((cb) => {

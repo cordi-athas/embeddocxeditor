@@ -27,6 +27,9 @@ export type MainToWorker = { rid?: number } & (
   | { cmd: 'insertTable'; rows: number; cols: number }
   | { cmd: 'insertImage'; path: string }
   | { cmd: 'insertLink'; url: string; text?: string }
+  | { cmd: 'insertText'; text: string } // inject plain text at the cursor
+  // field/merge: replace every `${open}key${close}` with data[key]
+  | { cmd: 'mergeFields'; data: Record<string, string>; open: string; close: string; matchCase?: boolean }
 );
 
 /** Worker → main thread. */
@@ -37,6 +40,7 @@ export type WorkerToMain = { rid?: number } & (
   | { cmd: 'modified' }             // the document was edited (for dirty/autosave)
   | { cmd: 'find-result'; found: boolean }     // result of find / replaceNext
   | { cmd: 'replace-result'; count: number }   // result of replaceAll
+  | { cmd: 'merge-result'; count: number }     // total replacements from mergeFields
   // toolbar state sync (unsolicited): boolean for toggles (Bold…), string/number
   // for value controls (CharFontName / FontHeight).
   | { cmd: 'format-state'; id: string; value: boolean | number | string }

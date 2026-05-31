@@ -96,6 +96,24 @@ export class DocxEditorClient {
     return this.request('dispatch', { uno, args });
   }
 
+  /** Inject plain text at the cursor. */
+  insertText(text: string): Promise<unknown> {
+    return this.request('insertText', { text });
+  }
+
+  /**
+   * Fill template placeholders with data: every `{{key}}` (configurable via
+   * `options.open`/`options.close`) is replaced with `data[key]`.
+   * @returns total replacements made
+   */
+  async mergeFields(
+    data: Record<string, string>,
+    options: { open?: string; close?: string; matchCase?: boolean } = {},
+  ): Promise<number> {
+    const r = await this.request('mergeFields', { data, options });
+    return (r as { count?: number }).count ?? 0;
+  }
+
   /** Remove the message listener. Call when unmounting. */
   destroy(): void {
     window.removeEventListener('message', this.onMessage);

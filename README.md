@@ -112,6 +112,10 @@ const bytes = await editor.getDocx();                            // current DOCX
 editor.newDocument();
 editor.setTheme({ '--dxe-accent': '#2563eb' });
 editor.dispatch('.uno:Bold');
+
+// Programmatic content: inject text + fill template placeholders with data.
+await editor.insertText('Dear {{name}}, your vessel {{vessel}} is due.');
+const replaced = await editor.mergeFields({ name: 'Captain', vessel: 'MV Marinex' }); // → count
 ```
 
 | Method / event | What it does |
@@ -120,6 +124,7 @@ editor.dispatch('.uno:Bold');
 | `loadDocument(bytes, {name, readOnly})` | Load a document from the host |
 | `getDocx() → Uint8Array` | Get the current document as DOCX bytes (for the host's own "Save") |
 | `newDocument()` · `setTheme(vars)` · `dispatch(uno, args)` | new document / theme / raw UNO command |
+| `insertText(text)` · `mergeFields(data, opts?) → count` | inject text at the cursor / fill `{{key}}` template placeholders with data |
 | `on('ready' \| 'change' \| 'clean' \| 'save' \| 'error', cb)` | events |
 
 Inside the editor, **Ctrl/Cmd+S** does not go to LibreOffice's internal save — when embedded it sends a **`save`** event to the host (which persists via `getDocx`), and standalone it downloads. Unsaved-change tracking is done with `change`/`clean`.

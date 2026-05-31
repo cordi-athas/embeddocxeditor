@@ -347,6 +347,33 @@ function insertLink(url, label) {
   cur.setPropertyValue('HyperLinkName', display);
 }
 
+// ---- Programmatic content (inject text + field/merge) ----
+
+function insertText(text) {
+  const t = xModel.getText();
+  const vc = ctrl.getViewCursor();
+  const cur = t.createTextCursorByRange(vc.getStart());
+  t.insertString(cur, String(text == null ? '' : text), false);
+}
+
+// Replace every `${open}key${close}` placeholder with data[key] (literal search,
+// not regex). Returns the total number of replacements across all keys.
+function mergeFields(data, open, close, matchCase) {
+  let total = 0;
+  const keys = data && typeof data === 'object' ? Object.keys(data) : [];
+  for (const key of keys) {
+    const desc = xModel.createReplaceDescriptor();
+    desc.setSearchString(String(open) + key + String(close));
+    desc.setPropertyValue('SearchCaseSensitive', !!matchCase);
+    desc.setPropertyValue('SearchWords', false);
+    desc.setReplaceString(String(data[key] == null ? '' : data[key]));
+    const n = xModel.replaceAll(desc);
+    total += typeof n === 'number' ? n : 0;
+  }
+  lastFound = null;
+  return total;
+}
+
 function boot() {
   zetajs.mainPort.onmessage = function (e) {
     const data = e.data || {};
@@ -382,6 +409,12 @@ function boot() {
           break;
         case 'insertLink':
           insertLink(data.url, data.text);
+          break;
+        case 'insertText':
+          insertText(data.text);
+          break;
+        case 'mergeFields':
+          reply({ cmd: 'merge-result', count: mergeFields(data.data, data.open, data.close, data.matchCase) });
           break;
         default:
           throw Error('Unknown command: ' + data.cmd);

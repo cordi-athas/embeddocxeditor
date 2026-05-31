@@ -303,6 +303,34 @@ export class ZetaDocxEditor {
     this.send({ cmd: 'insertLink', url: safe, text });
   }
 
+  /** Inject plain text at the current cursor position. */
+  insertText(text: string): void {
+    this.send({ cmd: 'insertText', text: String(text ?? '') });
+  }
+
+  /**
+   * Field/merge: replace every `${open}key${close}` placeholder (default
+   * `{{key}}`) with `data[key]` throughout the document — e.g. fill a template
+   * with host-supplied data. Returns the total number of replacements made.
+   */
+  async mergeFields(
+    data: Record<string, string>,
+    opts: { open?: string; close?: string; matchCase?: boolean } = {},
+  ): Promise<number> {
+    const r = (await this.request(
+      {
+        cmd: 'mergeFields',
+        data,
+        open: opts.open ?? '{{',
+        close: opts.close ?? '}}',
+        matchCase: opts.matchCase,
+      },
+      OP_TIMEOUT_MS,
+      'merge fields',
+    )) as Extract<WorkerToMain, { cmd: 'merge-result' }>;
+    return r.count;
+  }
+
   /** Ask LibreOffice to resize its window to the current canvas size. */
   requestResize(): void {
     window.dispatchEvent(new Event('resize'));
