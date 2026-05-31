@@ -4,6 +4,13 @@
   "description": "React component for embedding the offline, full-fidelity DOCX editor (LibreOffice WASM).",
   "license": "MIT",
   "author": "embeddocxeditor contributors",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cordi-athas/embeddocxeditor.git",
+    "directory": "packages/react"
+  },
+  "homepage": "https://github.com/cordi-athas/embeddocxeditor#readme",
+  "bugs": "https://github.com/cordi-athas/embeddocxeditor/issues",
   "type": "module",
   "files": ["dist", "LICENSE", "README.md"],
   "main": "./dist/index.cjs",
