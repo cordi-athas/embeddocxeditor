@@ -1,4 +1,4 @@
-# @embeddocx/react
+# embeddocx-react
 
 React component for embedding the offline, full-fidelity **DOCX editor** (LibreOffice
 compiled to WebAssembly). Thin wrapper around an `<iframe>` that hosts the editor +
@@ -7,7 +7,7 @@ a typed client — the heavy WASM engine stays isolated inside the iframe.
 ## Install
 
 ```bash
-npm i @embeddocx/react
+npm i embeddocx-react
 ```
 
 `react` is a peer dependency. You also need the **editor app hosted somewhere** (the
@@ -16,7 +16,7 @@ npm i @embeddocx/react
 ## Usage
 
 ```tsx
-import { DocxEditor, type DocxEditorHandle } from '@embeddocx/react';
+import { DocxEditor, type DocxEditorHandle } from 'embeddocx-react';
 import { useRef, useState } from 'react';
 
 export function Editor() {
@@ -116,7 +116,7 @@ If the page isn't isolated, the component logs a warning and the editor won't bo
 `DocxEditorClient` is exported too, for vanilla / other frameworks:
 
 ```ts
-import { DocxEditorClient } from '@embeddocx/react';
+import { DocxEditorClient } from 'embeddocx-react';
 const client = new DocxEditorClient(document.querySelector('iframe')!);
 await client.ready();
 await client.loadDocument(bytes, { name: 'report.docx' });

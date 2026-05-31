@@ -25,7 +25,7 @@ Bu üçü geçerse "saf tarayıcı + birebir parite" hedefi doğrulanmış olur.
 - [x] **Ctrl/Cmd+S yakalama + dirty + beforeunload:** Ctrl+S, Qt'den önce (window-capture, boot öncesi kaydedilmiş listener) yakalanır → embed'de host'a `save` olayı, standalone'da indirme. `/home/web_user` tuzağı kapandı. Kaydedilmemiş değişiklik takibi (`change`/`clean` olayları + toolbar'da amber nokta) ve sekme kapatma uyarısı eklendi.
 - [ ] **Harici açılışları algıla:** LibreOffice Start Center / drag-drop ile açılan belgeleri UNO frame/component listener ile fark edip toolbar durumunu ve dosya adını güncelle.
 - [ ] `ZetaDocxEditor`'ı bağımsız npm paketi olarak ayır (UI'dan tamamen bağımsız çekirdek).
-- [x] **React paketi** (`@embeddocx/react`): iframe-saran `<DocxEditor>` bileşeni + `DocxEditorClient` + tsup build + çalışan örnek (`packages/react/example`). Cross-origin embed için editöre `Cross-Origin-Resource-Policy: cross-origin` eklendi.
+- [x] **React paketi** (`embeddocx-react`): iframe-saran `<DocxEditor>` bileşeni + `DocxEditorClient` + tsup build + çalışan örnek (`packages/react/example`). Cross-origin embed için editöre `Cross-Origin-Resource-Policy: cross-origin` eklendi.
 - [ ] Vue sarmalayıcısı (aynı SDK üzerine).
 - [ ] Olay API'si: `onReady`, `onChange`, `onSave`, `onError`.
 - [ ] Programatik API: içerik enjeksiyonu, find/replace, alan/merge (UNO `XText` üzerinden).

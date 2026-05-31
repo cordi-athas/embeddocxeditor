@@ -63,7 +63,7 @@ rendering backend; Qt is included within the LibreOffice payload above.
 
 ---
 
-> **Scope.** The `@embeddocx/react` npm package ships **only** the React wrapper
+> **Scope.** The `embeddocx-react` npm package ships **only** the React wrapper
 > (MIT) and contains no LibreOffice — it embeds a separately-deployed editor via
 > an `<iframe>`. The LibreOffice/Qt notices above apply to deployments of the
 > **editor web app** (which bundle the WebAssembly payload), not to the npm

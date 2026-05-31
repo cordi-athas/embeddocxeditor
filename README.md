@@ -82,12 +82,12 @@ Cross-origin isolation (COOP/COEP) gerektiği için **en sağlam gömme yolu ifr
 - **Host sayfa cross-origin isolated olmalı** (kendi sunucusunda `COOP: same-origin` + `COEP: require-corp`). Bunu npm paketi ayarlayamaz; host yapar.
 - **Editör** ise embed edilebilmek için `Cross-Origin-Resource-Policy: cross-origin` gönderir (cross-origin iframe COEP altında aksi halde bloklanır) — `vite.config.ts`'te ayarlı, üretimde de gönder.
 
-### React paketi: `@embeddocx/react`
+### React paketi: `embeddocx-react`
 
 React uygulamaları için hazır bileşen (`packages/react`): `<DocxEditor src=… document=… onChange=… ref=…/>`. Çalışan örnek: `packages/react/example` (`npm i && npm run dev` → editörü iframe'le gömer). Ayrıntı: [packages/react/README.md](packages/react/README.md).
 
 ```tsx
-import { DocxEditor, type DocxEditorHandle } from '@embeddocx/react';
+import { DocxEditor, type DocxEditorHandle } from 'embeddocx-react';
 const ref = useRef<DocxEditorHandle>(null);
 <DocxEditor ref={ref} src="https://editor.example.com"
   document={bytes} onChange={() => setDirty(true)} onSave={save} />
@@ -169,10 +169,10 @@ Yeni metinler `src/i18n.ts` içindeki sözlüğe eklenir; statik DOM dizeleri `a
 
 ## Lisans notu (önemli)
 
-- Bu repodaki **wrapper kodu (engine, UI, embed bridge, React paketi) MIT** — [`LICENSE`](LICENSE). `@embeddocx/react` da MIT yayınlanır.
+- Bu repodaki **wrapper kodu (engine, UI, embed bridge, React paketi) MIT** — [`LICENSE`](LICENSE). `embeddocx-react` da MIT yayınlanır.
 - `zetajs` npm paketi **MIT** (allotropia). Redistribute edildiği için lisansı `public/vendor/zetajs/LICENSE`'a kopyalanır (`copy-vendor`).
 - LibreOffice-WASM payload'ı (`soffice.*`) **MPL-2.0 / LGPL-3.0+**. **Varsayılan kurulum bu dosyaları sürüm sabitleyip kendi origininden sunar** (pin) — yani onları *yeniden dağıtıyorsun*; dolayısıyla MPL/LGPL şartları senin dağıtımına uygulanır. Bunun için gereken artefaktlar repoda: tam lisans metinleri [`licenses/`](licenses/) (MPL-2.0, LGPL-3.0, GPL-3.0) ve atıf/kaynak/değiştirme bildirimi [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md). Yükümlülüğü en aza indirmek istersen `SOFFICE_BASE_URL`'i CDN `_latest`'e çevirip runtime'da çekebilirsin (ama o zaman sürüm sabit değildir).
-- **Not:** `@embeddocx/react` paketi yalnızca React wrapper'ı (MIT) içerir; LibreOffice'i barındırmaz (iframe ile ayrı deploy edilen editörü gömer). LibreOffice/Qt bildirimleri **editör web-app deploy'una** uygulanır, npm paketine değil.
+- **Not:** `embeddocx-react` paketi yalnızca React wrapper'ı (MIT) içerir; LibreOffice'i barındırmaz (iframe ile ayrı deploy edilen editörü gömer). LibreOffice/Qt bildirimleri **editör web-app deploy'una** uygulanır, npm paketine değil.
 - Lisans seçimleri tamamlanmış olsa da, dağıtımdan önce **hukuki kontrol önerilir.**
 
 ## WASM sürüm sabitleme (pin) — varsayılan

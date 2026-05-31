@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { DocxEditor, type DocxEditorHandle } from '@embeddocx/react';
+import { DocxEditor, type DocxEditorHandle } from 'embeddocx-react';
 
 // The hosted editor app (running separately). Cross-origin from this host (5174).
 const EDITOR_URL = 'http://localhost:5173/';
@@ -41,7 +41,7 @@ export default function App() {
           color: '#e2e8f0',
         }}
       >
-        <strong style={{ color: '#38bdf8' }}>React Host · @embeddocx/react</strong>
+        <strong style={{ color: '#38bdf8' }}>React Host · embeddocx-react</strong>
         <span style={{ flex: 1 }} />
         <label
           style={{ cursor: 'pointer', padding: '7px 12px', background: '#1e293b', borderRadius: 7 }}

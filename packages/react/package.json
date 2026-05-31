@@ -1,5 +1,5 @@
 {
-  "name": "@embeddocx/react",
+  "name": "embeddocx-react",
   "version": "0.1.0",
   "description": "React component for embedding the offline, full-fidelity DOCX editor (LibreOffice WASM).",
   "license": "MIT",

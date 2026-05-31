@@ -7,7 +7,7 @@
     "build": "vite build"
   },
   "dependencies": {
-    "@embeddocx/react": "file:..",
+    "embeddocx-react": "file:..",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
