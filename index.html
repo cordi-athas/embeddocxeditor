@@ -69,7 +69,7 @@
         <span class="dxe-sep"></span>
 
         <div class="dxe-grp" data-collapse="style">
-          <select data-uno=".uno:StyleApply" data-arg="Style" data-family="ParagraphStyles" disabled title="Paragraf stili" aria-label="Paragraf stili">
+          <select data-uno=".uno:StyleApply" data-arg="Style" data-family="ParagraphStyles" disabled title="Paragraf stili" aria-label="Paragraf stili" class="dxe-writer-only">
             <option value="Default Paragraph Style">Normal</option>
             <option value="Title">Başlık</option>
             <option value="Subtitle">Alt başlık</option>
@@ -122,11 +122,11 @@
           <button data-uno=".uno:CenterPara" data-state="CenterPara" disabled title="Ortala" class="ico"><svg class="ic"><use href="#ic-align-center" /></svg></button>
           <button data-uno=".uno:RightPara" data-state="RightPara" disabled title="Sağa hizala" class="ico"><svg class="ic"><use href="#ic-align-right" /></svg></button>
           <button data-uno=".uno:JustifyPara" data-state="JustifyPara" disabled title="İki yana yasla" class="ico"><svg class="ic"><use href="#ic-align-justify" /></svg></button>
-          <button data-uno=".uno:DefaultBullet" data-state="DefaultBullet" disabled title="Madde işareti" class="ico"><svg class="ic"><use href="#ic-bullet" /></svg></button>
-          <button data-uno=".uno:DefaultNumbering" data-state="DefaultNumbering" disabled title="Numaralı liste" class="ico"><svg class="ic"><use href="#ic-numbered" /></svg></button>
-          <button data-uno=".uno:DecrementIndent" disabled title="Girintiyi azalt" class="ico"><svg class="ic"><use href="#ic-indent-dec" /></svg></button>
-          <button data-uno=".uno:IncrementIndent" disabled title="Girintiyi artır" class="ico"><svg class="ic"><use href="#ic-indent-inc" /></svg></button>
-          <select data-menu disabled title="Satır aralığı" aria-label="Satır aralığı" class="menu">
+          <button data-uno=".uno:DefaultBullet" data-state="DefaultBullet" disabled title="Madde işareti" class="ico dxe-writer-only"><svg class="ic"><use href="#ic-bullet" /></svg></button>
+          <button data-uno=".uno:DefaultNumbering" data-state="DefaultNumbering" disabled title="Numaralı liste" class="ico dxe-writer-only"><svg class="ic"><use href="#ic-numbered" /></svg></button>
+          <button data-uno=".uno:DecrementIndent" disabled title="Girintiyi azalt" class="ico dxe-writer-only"><svg class="ic"><use href="#ic-indent-dec" /></svg></button>
+          <button data-uno=".uno:IncrementIndent" disabled title="Girintiyi artır" class="ico dxe-writer-only"><svg class="ic"><use href="#ic-indent-inc" /></svg></button>
+          <select data-menu disabled title="Satır aralığı" aria-label="Satır aralığı" class="menu dxe-writer-only">
             <option value="" disabled selected>↕</option>
             <option data-uno=".uno:SpacePara1">Tek (1.0)</option>
             <option data-uno=".uno:SpacePara15">1.5</option>
@@ -137,7 +137,7 @@
         <span class="dxe-sep"></span>
 
         <div class="dxe-grp" data-collapse="insert">
-          <button id="btnTable" disabled title="Tablo ekle" class="ico"><svg class="ic"><use href="#ic-table" /></svg></button>
+          <button id="btnTable" disabled title="Tablo ekle" class="ico dxe-writer-only"><svg class="ic"><use href="#ic-table" /></svg></button>
           <button id="btnImage" disabled title="Görsel ekle" class="ico"><svg class="ic"><use href="#ic-image" /></svg></button>
           <button id="btnLink" disabled title="Köprü ekle" class="ico"><svg class="ic"><use href="#ic-link" /></svg></button>
         </div>
@@ -145,8 +145,8 @@
         <span class="dxe-sep"></span>
 
         <div class="dxe-grp" data-collapse="view">
-          <button id="btnFind" disabled title="Bul ve Değiştir (Ctrl+F)" class="ico"><svg class="ic"><use href="#ic-search" /></svg></button>
-          <button data-uno=".uno:ControlCodes" data-state="ControlCodes" disabled title="Biçim işaretleri (¶)" class="ico"><svg class="ic"><use href="#ic-marks" /></svg></button>
+          <button id="btnFind" disabled title="Bul ve Değiştir (Ctrl+F)" class="ico dxe-writer-only"><svg class="ic"><use href="#ic-search" /></svg></button>
+          <button data-uno=".uno:ControlCodes" data-state="ControlCodes" disabled title="Biçim işaretleri (¶)" class="ico dxe-writer-only"><svg class="ic"><use href="#ic-marks" /></svg></button>
           <button data-uno=".uno:SpellOnline" data-state="SpellOnline" disabled title="Yazım denetimi" class="ico"><svg class="ic"><use href="#ic-spell" /></svg></button>
           <button data-uno=".uno:ZoomMinus" disabled title="Uzaklaştır" class="ico"><svg class="ic"><use href="#ic-zoom-out" /></svg></button>
           <button data-uno=".uno:ZoomPlus" disabled title="Yakınlaştır" class="ico"><svg class="ic"><use href="#ic-zoom-in" /></svg></button>

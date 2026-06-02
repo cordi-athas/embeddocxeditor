@@ -62,6 +62,7 @@ export class ZetaDocxEditor {
   private suppressChangeUntil = 0;
   private imgSeq = 0;
   private currentKind: DocKind = 'writer';
+  private kindCb: ((kind: DocKind) => void) | null = null;
 
   constructor(opts: ZetaEngineOptions) {
     this.canvas = opts.canvas;
@@ -312,6 +313,12 @@ export class ZetaDocxEditor {
     this.changeCb = cb;
   }
 
+  /** Register a callback fired whenever a document is created/opened, with its
+   *  kind ('writer' | 'calc') — use to adapt the UI to the document type. */
+  onKind(cb: (kind: DocKind) => void): void {
+    this.kindCb = cb;
+  }
+
   /** Insert a table with the given dimensions at the cursor. */
   insertTable(rows: number, cols: number): void {
     this.send({ cmd: 'insertTable', rows, cols });
@@ -372,6 +379,9 @@ export class ZetaDocxEditor {
   // ---------------- internals ----------------
 
   private afterDocReady(): void {
+    // Let the UI adapt to the document kind (writer/calc) — fires for both
+    // standalone and embed-driven new/open.
+    this.kindCb?.(this.currentKind);
     // Qt sizes its window at init; nudge it to fill the (possibly larger) canvas.
     this.requestResize();
     setTimeout(() => this.requestResize(), 300);

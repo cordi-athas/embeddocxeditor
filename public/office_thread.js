@@ -88,31 +88,48 @@ function dispatch(unoUrl, args) {
 
 // ---- Chrome removal ----
 
-// Hide every Writer toolbar globally (must run before the first doc frame).
+// Hide every default-visible toolbar / UI element for the modules we render
+// (Writer + Calc), so OUR toolbar is the only chrome regardless of document kind.
+// Must run before the first doc frame. Each module has its own *WindowState node.
 function hideAllToolbars() {
   const config = css.configuration.ReadWriteAccess.create(context, 'en-US');
-  const states = config.getByHierarchicalName(
-    '/org.openoffice.Office.UI.WriterWindowState/UIElements/States',
-  );
-  for (const name of states.getElementNames()) {
-    const el = states.getByName(name);
-    if (el.getByName('Visible')) el.setPropertyValue('Visible', false);
+  for (const mod of ['WriterWindowState', 'CalcWindowState']) {
+    let states;
+    try {
+      states = config.getByHierarchicalName(
+        '/org.openoffice.Office.UI.' + mod + '/UIElements/States',
+      );
+    } catch (e) {
+      continue; // module config not present
+    }
+    for (const name of states.getElementNames()) {
+      try {
+        const el = states.getByName(name);
+        if (el.getByName('Visible')) el.setPropertyValue('Visible', false);
+      } catch (e) {
+        /* skip elements without a Visible flag */
+      }
+    }
   }
   config.commitChanges();
 }
 
-// Per-frame chrome: menubar, statusbar, sidebar, rulers.
-let chromeHiddenOnce = false;
+// Per-frame chrome: menubar, statusbar, sidebar, rulers. We keep the Calc
+// formula bar + row/column headers + sheet tabs (the functional spreadsheet
+// view), but hide the sidebar/ruler like in Writer.
+const chromeHidden = { writer: false, calc: false };
 function hideFrameChrome() {
   const lm = ctrl.getFrame().LayoutManager;
   lm.hideElement('private:resource/menubar/menubar'); // idempotent
   lm.hideElement('private:resource/statusbar/statusbar'); // idempotent
-  // `.uno:Sidebar` and `.uno:Ruler` are TOGGLES: calling them on every doc open
-  // would flip them back on (the frame is reused across new/open). Hide once.
-  if (!chromeHiddenOnce) {
+  // `.uno:Sidebar` / `.uno:Ruler` are TOGGLES — flipping them on every doc open
+  // would re-show them. Writer and Calc use separate frames, so hide once PER
+  // KIND (a global once-guard would skip Calc and leave its sidebar visible).
+  const kind = docKind();
+  if (!chromeHidden[kind]) {
+    chromeHidden[kind] = true;
     dispatch('.uno:Sidebar'); // hide the sidebar
-    dispatch('.uno:Ruler'); // hide the rulers
-    chromeHiddenOnce = true;
+    if (kind === 'writer') dispatch('.uno:Ruler'); // ruler is Writer-only
   }
 }
 
@@ -362,25 +379,59 @@ function insertLink(url, label) {
 // ---- Programmatic content (inject text + field/merge) ----
 
 function insertText(text) {
+  const s = String(text == null ? '' : text);
+  // Calc: set the active/selected cell's content (no text flow like Writer).
+  if (docKind() === 'calc') {
+    try {
+      const sel = ctrl.getSelection();
+      const cell = sel && sel.getCellByPosition ? sel.getCellByPosition(0, 0) : sel;
+      if (cell && cell.setString) {
+        cell.setString(s);
+        return;
+      }
+    } catch (e) {
+      /* fall through to the Writer text path */
+    }
+  }
   const t = xModel.getText();
   const vc = ctrl.getViewCursor();
   const cur = t.createTextCursorByRange(vc.getStart());
-  t.insertString(cur, String(text == null ? '' : text), false);
+  t.insertString(cur, s, false);
+}
+
+// Objects that support find/replace (XReplaceable). For Writer that's the model
+// itself; for Calc the model has no createReplaceDescriptor — each sheet does.
+function replaceTargets() {
+  if (typeof xModel.createReplaceDescriptor === 'function') return [xModel];
+  if (xModel.getSheets) {
+    const sheets = xModel.getSheets();
+    return sheets
+      .getElementNames()
+      .map((n) => sheets.getByName(n))
+      .filter((s) => s && typeof s.createReplaceDescriptor === 'function');
+  }
+  return [];
 }
 
 // Replace every `${open}key${close}` placeholder with data[key] (literal search,
-// not regex). Returns the total number of replacements across all keys.
+// not regex), across the whole document (all sheets for Calc). Returns the total.
 function mergeFields(data, open, close, matchCase) {
   let total = 0;
   const keys = data && typeof data === 'object' ? Object.keys(data) : [];
-  for (const key of keys) {
-    const desc = xModel.createReplaceDescriptor();
-    desc.setSearchString(String(open) + key + String(close));
-    desc.setPropertyValue('SearchCaseSensitive', !!matchCase);
-    desc.setPropertyValue('SearchWords', false);
-    desc.setReplaceString(String(data[key] == null ? '' : data[key]));
-    const n = xModel.replaceAll(desc);
-    total += typeof n === 'number' ? n : 0;
+  for (const target of replaceTargets()) {
+    for (const key of keys) {
+      const desc = target.createReplaceDescriptor();
+      desc.setSearchString(String(open) + key + String(close));
+      try {
+        desc.setPropertyValue('SearchCaseSensitive', !!matchCase);
+        desc.setPropertyValue('SearchWords', false);
+      } catch (e) {
+        /* property not supported on this descriptor */
+      }
+      desc.setReplaceString(String(data[key] == null ? '' : data[key]));
+      const n = target.replaceAll(desc);
+      total += typeof n === 'number' ? n : 0;
+    }
   }
   lastFound = null;
   return total;

@@ -132,7 +132,8 @@ function findOptions(): FindOpts {
   return { matchCase: matchCaseEl.checked, wholeWord: wholeWordEl.checked };
 }
 function openFind(): void {
-  if (!hasDoc) return;
+  // Find/replace isn't wired for Calc yet (Writer XSearchable only) — no-op there.
+  if (!hasDoc || root.classList.contains('calc-mode')) return;
   findBar.hidden = false;
   findInput.focus();
   findInput.select();
@@ -337,6 +338,13 @@ function refreshToolbar(): void {
   for (const el of menuControls) el.disabled = fileBusy || !hasDoc;
 }
 
+/** Adapt the toolbar to the document kind: hide Writer-only controls for Calc. */
+function applyKindUI(kind: 'writer' | 'calc'): void {
+  root.classList.toggle('calc-mode', kind === 'calc');
+  // Re-run the adaptive toolbar layout now that some controls changed visibility.
+  window.dispatchEvent(new Event('resize'));
+}
+
 /** Wrap an async toolbar action: disable the toolbar while it runs, then restore. */
 function action(fn: () => Promise<void>): () => Promise<void> {
   return async () => {
@@ -508,6 +516,8 @@ async function main(): Promise<void> {
 
   // Edits → dirty (debounced in the engine, then mirrored to the host).
   editor.onChange(() => setDirty(true));
+  // Adapt the toolbar when the document kind changes (writer ↔ calc).
+  editor.onKind(applyKindUI);
 
   // Ctrl/Cmd+S: embedded → ask the host to save; standalone → download.
   onSaveShortcut = () => {
