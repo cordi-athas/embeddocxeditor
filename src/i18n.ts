@@ -12,7 +12,7 @@ export const DEFAULT_LANG: Lang = 'en';
 
 const MESSAGES: Record<Lang, Record<string, string>> = {
   en: {
-    't.new': 'New document', 't.open': 'Open DOCX', 't.save': 'Save as DOCX', 't.pdf': 'Export as PDF',
+    't.new': 'New document', 't.newsheet': 'New spreadsheet', 't.open': 'Open file', 't.save': 'Save', 't.pdf': 'Export as PDF',
     't.undo': 'Undo', 't.redo': 'Redo', 't.bold': 'Bold', 't.italic': 'Italic', 't.underline': 'Underline',
     't.strike': 'Strikethrough', 't.subscript': 'Subscript', 't.superscript': 'Superscript',
     't.fontcolor': 'Font color', 't.highlight': 'Highlight color', 't.clear': 'Clear formatting',
@@ -38,10 +38,10 @@ const MESSAGES: Record<Lang, Record<string, string>> = {
     'st.reload': 'Reload',
     'st.needsIsolation':
       'This editor must run on a cross-origin isolated page. Add the COOP/COEP response headers (see README).',
-    'save.docxType': 'Word document', 'save.pdfType': 'PDF document',
+    'save.docxType': 'Word document', 'save.xlsxType': 'Excel workbook', 'save.pdfType': 'PDF document',
   },
   tr: {
-    't.new': 'Yeni belge', 't.open': 'DOCX aç', 't.save': 'DOCX olarak kaydet', 't.pdf': 'PDF olarak dışa aktar',
+    't.new': 'Yeni belge', 't.newsheet': 'Yeni elektronik tablo', 't.open': 'Dosya aç', 't.save': 'Kaydet', 't.pdf': 'PDF olarak dışa aktar',
     't.undo': 'Geri al', 't.redo': 'Yinele', 't.bold': 'Kalın', 't.italic': 'İtalik', 't.underline': 'Altı çizili',
     't.strike': 'Üstü çizili', 't.subscript': 'Alt simge', 't.superscript': 'Üst simge',
     't.fontcolor': 'Yazı rengi', 't.highlight': 'Vurgu rengi', 't.clear': 'Biçimi temizle',
@@ -67,7 +67,7 @@ const MESSAGES: Record<Lang, Record<string, string>> = {
     'st.reload': 'Yeniden yükle',
     'st.needsIsolation':
       "Bu düzenleyici cross-origin isolated bir sayfada çalışmalı. COOP/COEP yanıt header'larını ekleyin (README'ye bakın).",
-    'save.docxType': 'Word belgesi', 'save.pdfType': 'PDF belgesi',
+    'save.docxType': 'Word belgesi', 'save.xlsxType': 'Excel çalışma kitabı', 'save.pdfType': 'PDF belgesi',
   },
 };
 
@@ -121,7 +121,7 @@ export function applyI18n(): void {
   document.documentElement.lang = current;
 
   const byId: Record<string, string> = {
-    btnNew: 't.new', btnOpen: 't.open', btnSave: 't.save', btnPdf: 't.pdf', btnFind: 't.find',
+    btnNew: 't.new', btnNewSheet: 't.newsheet', btnOpen: 't.open', btnSave: 't.save', btnPdf: 't.pdf', btnFind: 't.find',
     btnTable: 't.table', btnImage: 't.image', btnLink: 't.link',
   };
   for (const [id, key] of Object.entries(byId)) setTitle(id, key);
@@ -130,6 +130,7 @@ export function applyI18n(): void {
   setText('lblFile', 'group.file');
   setTitle('btnFile', 'group.file');
   setText('miNew', 't.new');
+  setText('miNewSheet', 't.newsheet');
   setText('miOpen', 't.open');
   setText('miSave', 't.save');
   setText('miPdf', 't.pdf');

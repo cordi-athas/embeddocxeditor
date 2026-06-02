@@ -75,15 +75,24 @@ export class DocxEditorClient {
     return this._request('load', { bytes, name, readOnly });
   }
 
-  /** Get the current document as DOCX bytes. @returns {Promise<Uint8Array>} */
+  /** Get the current document as bytes in its native format (DOCX or XLSX). @returns {Promise<Uint8Array>} */
   async getDocx() {
     const { bytes } = await this._request('getDocx', {});
     return new Uint8Array(bytes);
   }
 
-  /** Replace the document with a new, blank one. */
-  newDocument() {
-    return this._request('new', {});
+  /**
+   * Get the current document in its native format, with type info.
+   * @returns {Promise<{bytes: Uint8Array, mime: string, ext: string, kind: 'writer'|'calc'}>}
+   */
+  async getFile() {
+    const { bytes, mime, ext, kind } = await this._request('getDocx', {});
+    return { bytes: new Uint8Array(bytes), mime, ext, kind };
+  }
+
+  /** Replace the document with a new, blank one. `kind` = 'writer' (default) or 'calc'. */
+  newDocument(kind) {
+    return this._request('new', { kind });
   }
 
   /** Re-theme the editor, e.g. setTheme({ '--dxe-accent': '#2563eb' }). */

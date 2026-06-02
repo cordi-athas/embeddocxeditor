@@ -1,6 +1,6 @@
 {
   "name": "embeddocx-react",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "React component for embedding the offline, full-fidelity DOCX editor (LibreOffice WASM).",
   "license": "MIT",
   "author": "embeddocxeditor contributors",

@@ -6,7 +6,9 @@ export interface DocxEditorHandle {
   /** Current document as DOCX bytes. */
   getDocx(): Promise<Uint8Array>;
   loadDocument(data: ArrayBuffer | Uint8Array, opts?: LoadOptions): Promise<unknown>;
-  newDocument(): Promise<unknown>;
+  newDocument(kind?: 'writer' | 'calc'): Promise<unknown>;
+  /** Current document in its native format (DOCX or XLSX), with type info. */
+  getFile(): Promise<{ bytes: Uint8Array; mime: string; ext: string; kind: 'writer' | 'calc' }>;
   setTheme(vars: Record<string, string>): Promise<unknown>;
   dispatch(uno: string, args?: unknown): Promise<unknown>;
   /** Inject plain text at the cursor. */
@@ -87,7 +89,8 @@ export const DocxEditor = forwardRef<DocxEditorHandle, DocxEditorProps>(function
     () => ({
       getDocx: () => requireClient().getDocx(),
       loadDocument: (data, opts) => requireClient().loadDocument(data, opts),
-      newDocument: () => requireClient().newDocument(),
+      newDocument: (kind) => requireClient().newDocument(kind),
+      getFile: () => requireClient().getFile(),
       setTheme: (vars) => requireClient().setTheme(vars),
       dispatch: (uno, args) => requireClient().dispatch(uno, args),
       insertText: (text) => requireClient().insertText(text),

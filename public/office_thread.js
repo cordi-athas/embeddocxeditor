@@ -147,7 +147,7 @@ function attachAndAnnounce() {
   hideFrameChrome();
   listenForState();
   listenForChanges();
-  reply({ cmd: 'doc_ready' });
+  reply({ cmd: 'doc_ready', kind: docKind() });
 }
 
 // Notify the main thread when the document is edited (debounced there → dirty/autosave).
@@ -168,9 +168,21 @@ function listenForChanges() {
   xModel.addModifyListener(listener);
 }
 
-function newDoc() {
-  xModel = desktop.loadComponentFromURL('private:factory/swriter', '_default', 0, []);
+function newDoc(kind) {
+  const factory = kind === 'calc' ? 'private:factory/scalc' : 'private:factory/swriter';
+  xModel = desktop.loadComponentFromURL(factory, '_default', 0, []);
   attachAndAnnounce();
+}
+
+// Detect the loaded document's kind from the model itself (robust — works
+// regardless of how it was opened: new, file, or Start Center).
+function docKind() {
+  try {
+    if (xModel.supportsService('com.sun.star.sheet.SpreadsheetDocument')) return 'calc';
+  } catch (e) {
+    /* supportsService unavailable → assume writer */
+  }
+  return 'writer';
 }
 
 function openDoc(path, readOnly) {
@@ -193,13 +205,13 @@ function getActiveModel() {
   return model;
 }
 
-function saveDoc(outPath, filter) {
+function saveDoc(outPath, filter, markClean) {
   const model = getActiveModel();
   const f = filter || DOCX_FILTER;
   model.storeToURL('file://' + outPath, [prop('Overwrite', true), prop('FilterName', f)]);
-  // Only a real DOCX save marks the document clean (PDF export must not). The
-  // reset event is ignored by the modify listener's isModified() guard.
-  if (f === DOCX_FILTER) {
+  // Reset the modified flag only for native saves (DOCX/XLSX) — never for PDF
+  // export. The reset event is ignored by the modify listener's isModified() guard.
+  if (markClean) {
     try {
       model.setModified(false);
     } catch (e) {
@@ -381,13 +393,13 @@ function boot() {
     try {
       switch (data.cmd) {
         case 'new':
-          newDoc();
+          newDoc(data.kind);
           break;
         case 'open':
           openDoc(data.path, data.readOnly);
           break;
         case 'save':
-          saveDoc(data.path, data.filter);
+          saveDoc(data.path, data.filter, data.markClean);
           break;
         case 'dispatch':
           dispatch(data.uno, data.args);

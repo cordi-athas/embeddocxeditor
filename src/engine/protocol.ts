@@ -17,9 +17,11 @@ export type DispatchArg = { name: string; value: boolean | number | string };
 
 /** Main thread → worker. */
 export type MainToWorker = { rid?: number } & (
-  | { cmd: 'new' }
+  | { cmd: 'new'; kind?: 'writer' | 'calc' } // blank Writer (default) or Calc doc
   | { cmd: 'open'; path: string; readOnly?: boolean }
-  | { cmd: 'save'; path: string; filter?: string } // filter: e.g. 'writer_pdf_Export'
+  // filter: LibreOffice export filter (omit → DOCX). markClean: reset the modified
+  // flag after a native save (true), but not after PDF export (false).
+  | { cmd: 'save'; path: string; filter?: string; markClean?: boolean }
   | { cmd: 'dispatch'; uno: string; args?: DispatchArg[] } // run a UNO command
   | { cmd: 'find'; query: string; matchCase?: boolean; wholeWord?: boolean; backwards?: boolean }
   | { cmd: 'replaceAll'; query: string; replacement: string; matchCase?: boolean; wholeWord?: boolean }
@@ -35,7 +37,7 @@ export type MainToWorker = { rid?: number } & (
 /** Worker → main thread. */
 export type WorkerToMain = { rid?: number } & (
   | { cmd: 'thr_running' }          // worker booted, UNO Desktop ready
-  | { cmd: 'doc_ready' }            // a document was created/opened and shown
+  | { cmd: 'doc_ready'; kind?: 'writer' | 'calc' } // a document was created/opened and shown
   | { cmd: 'saved'; path: string }  // export finished; bytes are at `path` in FS
   | { cmd: 'modified' }             // the document was edited (for dirty/autosave)
   | { cmd: 'find-result'; found: boolean }     // result of find / replaceNext

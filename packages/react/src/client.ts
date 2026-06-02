@@ -78,14 +78,21 @@ export class DocxEditorClient {
     });
   }
 
-  /** Get the current document as DOCX bytes. */
+  /** Get the current document as bytes in its native format (DOCX or XLSX). */
   async getDocx(): Promise<Uint8Array> {
     const result = await this.request('getDocx', {});
     return new Uint8Array(result.bytes);
   }
 
-  newDocument(): Promise<unknown> {
-    return this.request('new', {});
+  /** Get the current document in its native format, with type info. */
+  async getFile(): Promise<{ bytes: Uint8Array; mime: string; ext: string; kind: 'writer' | 'calc' }> {
+    const r = await this.request('getDocx', {});
+    return { bytes: new Uint8Array(r.bytes), mime: r.mime, ext: r.ext, kind: r.kind };
+  }
+
+  /** Replace the document with a new, blank one — 'writer' (default) or 'calc'. */
+  newDocument(kind?: 'writer' | 'calc'): Promise<unknown> {
+    return this.request('new', { kind });
   }
 
   setTheme(vars: Record<string, string>): Promise<unknown> {

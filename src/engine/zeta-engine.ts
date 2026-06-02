@@ -2,6 +2,7 @@ import { SOFFICE_BASE_URL, ZETA_JS_URL, WORKER_URL } from './config';
 import type { DispatchArg, MainToWorker, WorkerToMain } from './protocol';
 import { PendingRequests } from './pending';
 import { safeLinkUrl } from './url-safe';
+import { specFor, kindForFilename, type DocKind, type FormatSpec } from './formats';
 
 /**
  * Operation timeouts (ms) — backstops so a crashed or silent worker can never
@@ -60,6 +61,7 @@ export class ZetaDocxEditor {
   private changeTimer: ReturnType<typeof setTimeout> | null = null;
   private suppressChangeUntil = 0;
   private imgSeq = 0;
+  private currentKind: DocKind = 'writer';
 
   constructor(opts: ZetaEngineOptions) {
     this.canvas = opts.canvas;
@@ -123,9 +125,13 @@ export class ZetaDocxEditor {
     this.observeResize();
   }
 
-  /** Create a new, blank Writer document. */
-  async newDocument(): Promise<void> {
-    await this.request({ cmd: 'new' }, OP_TIMEOUT_MS, 'new document');
+  /** Create a new, blank document — Writer (default) or Calc spreadsheet. */
+  async newDocument(kind: DocKind = 'writer'): Promise<void> {
+    const r = (await this.request({ cmd: 'new', kind }, OP_TIMEOUT_MS, 'new document')) as Extract<
+      WorkerToMain,
+      { cmd: 'doc_ready' }
+    >;
+    this.currentKind = r.kind ?? kind;
     this.afterDocReady();
   }
 
@@ -144,27 +150,50 @@ export class ZetaDocxEditor {
     const path = `${OFFICE_DIR}/${name}`;
     this.fs.mkdirSafe(OFFICE_DIR);
     this.fs.write(path, bytes);
-    await this.request(
+    const r = (await this.request(
       { cmd: 'open', path, readOnly: opts.readOnly },
       OP_TIMEOUT_MS,
       'open document',
-    );
+    )) as Extract<WorkerToMain, { cmd: 'doc_ready' }>;
+    this.currentKind = r.kind ?? kindForFilename(name);
     this.afterDocReady();
   }
 
-  /** Export the current document as DOCX bytes. */
-  getDocxBytes(filename = 'document.docx'): Promise<Uint8Array> {
-    return this.exportBytes(filename);
+  /** The current document's kind ('writer' | 'calc'), tracked from the worker. */
+  get kind(): DocKind {
+    return this.currentKind;
   }
 
-  /** Export the current document as a PDF Blob. */
+  /** Native format spec (save/pdf filter, MIME, extension) for the current
+   *  document — use `.mime` / `.ext` when downloading. */
+  get fileSpec(): FormatSpec {
+    return specFor(this.currentKind);
+  }
+
+  /** Export the current document in its NATIVE format: DOCX (Writer) or XLSX (Calc). */
+  getBytes(): Promise<Uint8Array> {
+    const spec = specFor(this.currentKind);
+    return this.exportBytes('document' + spec.ext, spec.saveFilter, true);
+  }
+
+  /** @deprecated Back-compat alias for {@link getBytes} (returns native bytes). */
+  getDocxBytes(_filename?: string): Promise<Uint8Array> {
+    return this.getBytes();
+  }
+
+  /** Export the current document as a PDF Blob (PDF filter chosen by kind). */
   async exportPdf(filename = 'document.pdf'): Promise<Blob> {
-    const bytes = await this.exportBytes(filename, 'writer_pdf_Export');
+    const bytes = await this.exportBytes(filename, specFor(this.currentKind).pdfFilter, false);
     return new Blob([new Uint8Array(bytes)], { type: 'application/pdf' });
   }
 
-  /** Export via a LibreOffice filter (default = DOCX). */
-  private async exportBytes(filename: string, filter?: string): Promise<Uint8Array> {
+  /** Export via a LibreOffice filter. `markClean` resets the modified flag after
+   *  a native save (DOCX/XLSX), but not after PDF export. */
+  private async exportBytes(
+    filename: string,
+    filter: string,
+    markClean: boolean,
+  ): Promise<Uint8Array> {
     const path = `${OFFICE_DIR}/${filename}`;
     this.fs.mkdirSafe(OFFICE_DIR);
     // Suppress the modify-event noise the export round-trip emits, otherwise a
@@ -173,7 +202,7 @@ export class ZetaDocxEditor {
     this.clearChangeTimer();
     try {
       const done = (await this.request(
-        { cmd: 'save', path, filter },
+        { cmd: 'save', path, filter, markClean },
         OP_TIMEOUT_MS,
         'save',
       )) as Extract<WorkerToMain, { cmd: 'saved' }>;
@@ -193,14 +222,18 @@ export class ZetaDocxEditor {
     }
   }
 
-  /** Export the current document as a DOCX Blob (convenience over getDocxBytes). */
-  async saveDocx(filename = 'untitled.docx'): Promise<Blob> {
-    const bytes = await this.getDocxBytes(filename);
+  /** Export the current document as a Blob in its native format (DOCX or XLSX). */
+  async saveFile(): Promise<Blob> {
+    const spec = specFor(this.currentKind);
+    const bytes = await this.getBytes();
     // Re-wrap in a guaranteed ArrayBuffer-backed view for Blob (TS rejects a
     // possibly-SharedArrayBuffer-backed Uint8Array as a BlobPart).
-    return new Blob([new Uint8Array(bytes)], {
-      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    });
+    return new Blob([new Uint8Array(bytes)], { type: spec.mime });
+  }
+
+  /** @deprecated Back-compat alias for {@link saveFile}. */
+  saveDocx(_filename?: string): Promise<Blob> {
+    return this.saveFile();
   }
 
   /**

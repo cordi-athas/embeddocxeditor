@@ -13,7 +13,7 @@
     "prebuild": "npm run copy:vendor && npm run fetch:wasm",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test": "node --experimental-strip-types --test src/embed-trust.test.ts src/engine/pending.test.ts src/engine/url-safe.test.ts"
+    "test": "node --experimental-strip-types --test src/embed-trust.test.ts src/engine/pending.test.ts src/engine/url-safe.test.ts src/engine/formats.test.ts"
   },
   "dependencies": {
     "zetajs": "^1.2.0"

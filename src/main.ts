@@ -2,6 +2,7 @@ import './styles.css';
 import { ZetaDocxEditor } from './engine/zeta-engine';
 import type { FindOpts } from './engine/zeta-engine';
 import { safeLinkUrl } from './engine/url-safe';
+import { withKindExt } from './engine/formats';
 import { installHostBridge, type HostBridge } from './embed-host';
 import { installAdaptiveToolbar } from './adaptive-toolbar';
 import { setLang, applyI18n, resolveInitialLang, t } from './i18n';
@@ -15,6 +16,7 @@ const statusEl = document.getElementById('status') as HTMLSpanElement;
 const loadingText = document.getElementById('loadingText') as HTMLDivElement;
 const reloadBtn = document.getElementById('reloadBtn') as HTMLButtonElement | null;
 const btnNew = document.getElementById('btnNew') as HTMLButtonElement;
+const btnNewSheet = document.getElementById('btnNewSheet') as HTMLButtonElement;
 const btnOpen = document.getElementById('btnOpen') as HTMLButtonElement;
 const btnSave = document.getElementById('btnSave') as HTMLButtonElement;
 const btnPdf = document.getElementById('btnPdf') as HTMLButtonElement;
@@ -103,8 +105,6 @@ let hasDoc = false;
 let dirty = false;
 let currentFilename = 'untitled.docx';
 let bridge: HostBridge | null = null;
-
-const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
 // ── Ctrl/Cmd+S interception ──────────────────────────────────────────────
 // Capture-phase, registered at module load (BEFORE the Qt canvas attaches its
@@ -325,6 +325,7 @@ function refreshToolbar(): void {
   const fileBusy = !booted || busy;
   btnFile.disabled = fileBusy;
   btnNew.disabled = fileBusy;
+  btnNewSheet.disabled = fileBusy;
   btnOpen.disabled = fileBusy;
   btnSave.disabled = fileBusy || !hasDoc;
   btnPdf.disabled = fileBusy || !hasDoc;
@@ -402,18 +403,22 @@ function wireControls(): void {
 
 /** Standalone save: real "Save As" dialog where supported, else a download. */
 async function saveAction(): Promise<void> {
+  // Save in the document's native format: DOCX (Writer) or XLSX (Calc).
+  const spec = editor.fileSpec;
+  const name = withKindExt(currentFilename, editor.kind);
   const ok = await exportToFile(
-    () => editor.saveDocx(currentFilename),
-    currentFilename,
-    DOCX_MIME,
-    '.docx',
-    t('save.docxType'),
+    () => editor.saveFile(),
+    name,
+    spec.mime,
+    spec.ext,
+    editor.kind === 'calc' ? t('save.xlsxType') : t('save.docxType'),
     t('st.saving'),
   );
   if (!ok) {
     setStatus('');
     return; // user cancelled the save dialog
   }
+  currentFilename = name;
   setStatus(`${t('st.saved')}: ${currentFilename}`);
   setDirty(false);
 }
@@ -521,9 +526,18 @@ async function main(): Promise<void> {
 
   btnNew.onclick = action(async () => {
     setStatus('');
-    await editor.newDocument();
+    await editor.newDocument('writer');
     hasDoc = true;
     currentFilename = 'untitled.docx';
+    setDirty(false);
+    setStatus(t('st.newblank'));
+  });
+
+  btnNewSheet.onclick = action(async () => {
+    setStatus('');
+    await editor.newDocument('calc');
+    hasDoc = true;
+    currentFilename = 'untitled.xlsx';
     setDirty(false);
     setStatus(t('st.newblank'));
   });
@@ -536,7 +550,7 @@ async function main(): Promise<void> {
     if (!file) return;
     await action(async () => {
       setStatus(`${t('st.opening')}: ${file.name}`);
-      currentFilename = file.name.replace(/\.docx?$/i, '') + '.docx';
+      currentFilename = file.name; // keep the original name+ext; save normalizes by kind
       await editor.openDocx(file);
       hasDoc = true;
       setDirty(false);
@@ -547,7 +561,7 @@ async function main(): Promise<void> {
   btnSave.onclick = action(saveAction);
 
   btnPdf.onclick = action(async () => {
-    const name = currentFilename.replace(/\.docx?$/i, '') + '.pdf';
+    const name = currentFilename.replace(/\.[^./\\]+$/, '') + '.pdf';
     const ok = await exportToFile(
       () => editor.exportPdf(name),
       name,
@@ -568,7 +582,7 @@ function pickFile(): Promise<File | null> {
   return new Promise((resolve) => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.docx,.doc,.odt,.rtf';
+    input.accept = '.docx,.doc,.odt,.rtf,.xlsx,.xls,.ods,.csv';
     let settled = false;
     const finish = (file: File | null) => {
       if (settled) return;

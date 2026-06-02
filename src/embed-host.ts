@@ -124,24 +124,26 @@ export function installHostBridge(
           hooks.setFilename?.(name);
           hooks.setStatus?.(`${t('st.loaded')}: ${name}`);
           hooks.markClean?.();
-          reply(id, true);
+          reply(id, true, { kind: editor.kind });
           break;
         }
         case 'getDocx': {
-          const bytes = await editor.getDocxBytes(payload?.name);
+          // Native bytes: DOCX for a text doc, XLSX for a spreadsheet.
+          const bytes = await editor.getBytes();
           const ab = bytes.buffer.slice(
             bytes.byteOffset,
             bytes.byteOffset + bytes.byteLength,
           ) as ArrayBuffer;
-          reply(id, true, { bytes: ab }, [ab]);
+          const spec = editor.fileSpec;
+          reply(id, true, { bytes: ab, kind: editor.kind, mime: spec.mime, ext: spec.ext }, [ab]);
           hooks.markClean?.(); // host pulled the document → treat as saved
           break;
         }
         case 'new': {
-          await editor.newDocument();
+          await editor.newDocument(payload?.kind === 'calc' ? 'calc' : 'writer');
           hooks.setStatus?.(t('st.newdoc'));
           hooks.markClean?.();
-          reply(id, true);
+          reply(id, true, { kind: editor.kind });
           break;
         }
         case 'setTheme': {
