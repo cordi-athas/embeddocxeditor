@@ -246,43 +246,74 @@ function configureSearch(desc, data) {
   desc.setPropertyValue('SearchWords', !!data.wholeWord);
 }
 
-// Object that supports find (XSearchable): the model for Writer; the active
-// sheet for Calc (whose model has no createSearchDescriptor). `replaceTargets()`
-// (defined later) covers replace-all across every Calc sheet.
-function searchable() {
-  if (typeof xModel.createSearchDescriptor === 'function') return xModel;
+// Calc find across sheets (the Calc model has no createSearchDescriptor — each
+// sheet is XSearchable). Searches the active sheet first (cycling its matches),
+// then the other sheets if the active one has none — switching the active sheet
+// to wherever the match is found.
+function calcFind(data) {
+  const sheets = xModel.getSheets();
+  const names = sheets.getElementNames();
+  const n = names.length;
+  if (!n) return false;
+  let startIdx = 0;
   try {
-    if (ctrl.getActiveSheet) return ctrl.getActiveSheet();
+    const i = names.indexOf(ctrl.getActiveSheet().getName());
+    if (i >= 0) startIdx = i;
   } catch (e) {
-    /* fall back to the model */
+    /* default to the first sheet */
   }
-  return xModel;
+  for (let off = 0; off < n; off++) {
+    const idx = (((startIdx + (data.backwards ? -off : off)) % n) + n) % n;
+    const sheet = sheets.getByName(names[idx]);
+    const desc = sheet.createSearchDescriptor();
+    configureSearch(desc, data);
+    if (data.backwards) desc.setPropertyValue('SearchBackwards', true);
+    let found = null;
+    if (off === 0 && lastFound && lastFound.getCellByPosition) {
+      try {
+        found = sheet.findNext(lastFound, desc);
+      } catch (e) {
+        found = null;
+      }
+    }
+    if (!found) found = sheet.findFirst(desc);
+    if (found) {
+      try {
+        ctrl.setActiveSheet(sheet);
+      } catch (e) {
+        /* single-sheet docs / API not present */
+      }
+      try {
+        ctrl.select(found);
+      } catch (e) {}
+      lastFound = found;
+      return true;
+    }
+  }
+  lastFound = null;
+  return false;
 }
 
 function doFind(data) {
   try {
-    const s = searchable();
-    const desc = s.createSearchDescriptor();
+    if (docKind() === 'calc') {
+      reply({ cmd: 'find-result', found: calcFind(data) });
+      return;
+    }
+    const desc = xModel.createSearchDescriptor();
     configureSearch(desc, data);
     if (data.backwards) desc.setPropertyValue('SearchBackwards', true);
 
     let found = null;
     if (lastFound) {
       try {
-        // Writer: continue from the matched text range's edge. Calc: pass the
-        // previous cell range straight to findNext.
-        const startAfter =
-          typeof lastFound.getStart === 'function'
-            ? data.backwards
-              ? lastFound.getStart()
-              : lastFound.getEnd()
-            : lastFound;
-        found = s.findNext(startAfter, desc);
+        const start = data.backwards ? lastFound.getStart() : lastFound.getEnd();
+        found = xModel.findNext(start, desc);
       } catch (e) {
         found = null; // stale range → fall through to findFirst
       }
     }
-    if (!found) found = s.findFirst(desc); // first match, or wrap-around
+    if (!found) found = xModel.findFirst(desc); // first match, or wrap-around
     lastFound = found || null;
     if (found) {
       try {
@@ -309,6 +340,7 @@ function doReplaceAll(data) {
       total += typeof n === 'number' ? n : 0;
     }
     lastFound = null;
+    refreshCalcView();
     reply({ cmd: 'replace-result', count: total });
   } catch (err) {
     reply({ cmd: 'replace-result', count: 0 });
@@ -417,6 +449,18 @@ function insertLink(url, label) {
 
 // ---- Programmatic content (inject text + field/merge) ----
 
+// Nudge the Calc view (formula bar + display) to refresh after a programmatic
+// edit, by re-selecting the current selection.
+function refreshCalcView() {
+  if (docKind() !== 'calc') return;
+  try {
+    const sel = ctrl.getSelection();
+    if (sel) ctrl.select(sel);
+  } catch (e) {
+    /* ignore */
+  }
+}
+
 function insertText(text) {
   const s = String(text == null ? '' : text);
   // Calc: set the active/selected cell's content (no text flow like Writer).
@@ -425,7 +469,12 @@ function insertText(text) {
       const sel = ctrl.getSelection();
       const cell = sel && sel.getCellByPosition ? sel.getCellByPosition(0, 0) : sel;
       if (cell && cell.setString) {
-        cell.setString(s);
+        const t = s.trim();
+        // Numeric-looking input → store a NUMBER so number formats apply;
+        // anything else stays text.
+        if (t !== '' && /^-?\d+(?:\.\d+)?$/.test(t)) cell.setValue(Number(t));
+        else cell.setString(s);
+        refreshCalcView();
         return;
       }
     } catch (e) {
@@ -437,6 +486,16 @@ function insertText(text) {
   const cur = t.createTextCursorByRange(vc.getStart());
   t.insertString(cur, s, false);
 }
+
+// NOTE on Calc cell borders: not implemented. Borders require setting the
+// `TableBorder`/`TableBorder2` (or per-edge `*Border`) cell properties, whose
+// line structs all carry a `com.sun.star.util.Color` typedef field. This
+// LibreOffice-WASM/zetajs build cannot marshal that typedef in EITHER direction:
+// constructing a BorderLine/BorderLine2 throws "bad type description
+// com.sun.star.util.Color", and even reading an existing TableBorder2 back
+// throws the same. There is no parameterless border dispatch to fall back on
+// (`.uno:SetBorderStyle` needs a struct arg). Revisit if a future zetajs build
+// gains util::Color support.
 
 // Objects that support find/replace (XReplaceable). For Writer that's the model
 // itself; for Calc the model has no createReplaceDescriptor — each sheet does.
@@ -473,6 +532,7 @@ function mergeFields(data, open, close, matchCase) {
     }
   }
   lastFound = null;
+  refreshCalcView();
   return total;
 }
 
