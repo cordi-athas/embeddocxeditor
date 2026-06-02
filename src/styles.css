@@ -181,8 +181,10 @@ body > .dxe { height: 100vh; }
 .dxe button.active { background: var(--dxe-active-bg); color: var(--dxe-accent); }
 
 /* Type-aware toolbar: Writer-only controls (paragraph style, lists, line
-   spacing, indent, ¶ marks, insert-table) are hidden for spreadsheets. */
+   spacing, indent, ¶ marks, insert-table) are hidden for spreadsheets, and
+   Calc-only controls (number format, cell ops) are hidden for text documents. */
 .dxe.calc-mode .dxe-writer-only { display: none !important; }
+.dxe:not(.calc-mode) .dxe-calc-only { display: none !important; }
 
 /* Selects */
 .dxe select {

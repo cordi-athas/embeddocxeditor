@@ -142,6 +142,26 @@
           <button id="btnLink" disabled title="Köprü ekle" class="ico"><svg class="ic"><use href="#ic-link" /></svg></button>
         </div>
 
+        <span class="dxe-sep dxe-calc-only"></span>
+
+        <div class="dxe-grp dxe-calc-only" data-collapse="calc">
+          <select data-menu disabled id="calcNumFmt" title="Number format" aria-label="Number format" class="menu">
+            <option value="" disabled selected>123</option>
+            <option data-uno=".uno:NumberFormatStandard">General</option>
+            <option data-uno=".uno:NumberFormatPercent">Percent</option>
+            <option data-uno=".uno:NumberFormatCurrency">Currency</option>
+            <option data-uno=".uno:NumberFormatDate">Date</option>
+          </select>
+          <select data-menu disabled id="calcCells" title="Cells" aria-label="Cells" class="menu">
+            <option value="" disabled selected>Cells</option>
+            <option data-uno=".uno:InsertRows">Insert row</option>
+            <option data-uno=".uno:InsertColumns">Insert column</option>
+            <option data-uno=".uno:DeleteRows">Delete row</option>
+            <option data-uno=".uno:DeleteColumns">Delete column</option>
+            <option data-uno=".uno:ToggleMergeCells">Merge / unmerge</option>
+          </select>
+        </div>
+
         <span class="dxe-sep"></span>
 
         <div class="dxe-grp" data-collapse="view">
