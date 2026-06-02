@@ -246,22 +246,43 @@ function configureSearch(desc, data) {
   desc.setPropertyValue('SearchWords', !!data.wholeWord);
 }
 
+// Object that supports find (XSearchable): the model for Writer; the active
+// sheet for Calc (whose model has no createSearchDescriptor). `replaceTargets()`
+// (defined later) covers replace-all across every Calc sheet.
+function searchable() {
+  if (typeof xModel.createSearchDescriptor === 'function') return xModel;
+  try {
+    if (ctrl.getActiveSheet) return ctrl.getActiveSheet();
+  } catch (e) {
+    /* fall back to the model */
+  }
+  return xModel;
+}
+
 function doFind(data) {
   try {
-    const desc = xModel.createSearchDescriptor();
+    const s = searchable();
+    const desc = s.createSearchDescriptor();
     configureSearch(desc, data);
     if (data.backwards) desc.setPropertyValue('SearchBackwards', true);
 
     let found = null;
     if (lastFound) {
       try {
-        const start = data.backwards ? lastFound.getStart() : lastFound.getEnd();
-        found = xModel.findNext(start, desc);
+        // Writer: continue from the matched text range's edge. Calc: pass the
+        // previous cell range straight to findNext.
+        const startAfter =
+          typeof lastFound.getStart === 'function'
+            ? data.backwards
+              ? lastFound.getStart()
+              : lastFound.getEnd()
+            : lastFound;
+        found = s.findNext(startAfter, desc);
       } catch (e) {
         found = null; // stale range → fall through to findFirst
       }
     }
-    if (!found) found = xModel.findFirst(desc); // first match, or wrap-around
+    if (!found) found = s.findFirst(desc); // first match, or wrap-around
     lastFound = found || null;
     if (found) {
       try {
@@ -278,12 +299,17 @@ function doFind(data) {
 
 function doReplaceAll(data) {
   try {
-    const desc = xModel.createReplaceDescriptor();
-    configureSearch(desc, data);
-    desc.setReplaceString(data.replacement);
-    const count = xModel.replaceAll(desc);
+    // Writer: the model. Calc: every sheet (XReplaceable lives per-sheet).
+    let total = 0;
+    for (const target of replaceTargets()) {
+      const desc = target.createReplaceDescriptor();
+      configureSearch(desc, data);
+      desc.setReplaceString(data.replacement);
+      const n = target.replaceAll(desc);
+      total += typeof n === 'number' ? n : 0;
+    }
     lastFound = null;
-    reply({ cmd: 'replace-result', count: typeof count === 'number' ? count : 0 });
+    reply({ cmd: 'replace-result', count: total });
   } catch (err) {
     reply({ cmd: 'replace-result', count: 0 });
   }
@@ -293,7 +319,20 @@ function doReplaceNext(data) {
   // Replace the current match (if we're on one), then advance to the next.
   if (lastFound) {
     try {
-      lastFound.setString(data.replacement);
+      if (typeof lastFound.getStart === 'function') {
+        lastFound.setString(data.replacement); // Writer: matched text range
+      } else if (lastFound.getCellByPosition) {
+        // Calc: replace the first occurrence of the query within the matched cell.
+        const cell = lastFound.getCellByPosition(0, 0);
+        const cur = cell.getString();
+        const needle = String(data.query);
+        const i = (data.matchCase ? cur : cur.toLowerCase()).indexOf(
+          data.matchCase ? needle : needle.toLowerCase(),
+        );
+        if (i >= 0) {
+          cell.setString(cur.slice(0, i) + data.replacement + cur.slice(i + needle.length));
+        }
+      }
     } catch (e) {
       /* ignore */
     }

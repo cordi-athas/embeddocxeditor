@@ -132,8 +132,7 @@ function findOptions(): FindOpts {
   return { matchCase: matchCaseEl.checked, wholeWord: wholeWordEl.checked };
 }
 function openFind(): void {
-  // Find/replace isn't wired for Calc yet (Writer XSearchable only) — no-op there.
-  if (!hasDoc || root.classList.contains('calc-mode')) return;
+  if (!hasDoc) return;
   findBar.hidden = false;
   findInput.focus();
   findInput.select();
