@@ -9,6 +9,7 @@
 //   await editor.loadDocument(arrayBuffer, { name: 'rapor.docx' });
 //   editor.on('change', () => markDirty());
 //   const bytes = await editor.getDocx();   // Uint8Array (DOCX)
+//   await editor.print();                   // → 'dialog' | 'tab' | 'download'
 //
 // The editor iframe must be served cross-origin-isolated (COOP/COEP) and the
 // iframe tag should carry  allow="cross-origin-isolated".
@@ -108,6 +109,18 @@ export class DocxEditorClient {
   /** Inject plain text at the cursor. */
   insertText(text) {
     return this._request('insertText', { text });
+  }
+
+  /**
+   * Print the current document. The editor renders it to PDF and hands that to
+   * the browser's print dialog. No click gesture reaches the editor frame from
+   * a host command, so WebKit/Safari cannot open a tab there and falls back to
+   * downloading the PDF — the resolved value says which happened.
+   * @returns {Promise<'dialog'|'tab'|'download'>}
+   */
+  async print() {
+    const { method } = await this._request('print', {});
+    return method;
   }
 
   /**

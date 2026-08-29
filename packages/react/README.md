@@ -108,9 +108,14 @@ If the page isn't isolated, the component logs a warning and the editor won't bo
 
 ### Ref handle (`DocxEditorHandle`)
 
-`getDocx()` · `loadDocument(data, opts?)` · `newDocument()` · `setTheme(vars)` ·
+`getDocx()` · `getFile()` · `loadDocument(data, opts?)` · `newDocument()` · `setTheme(vars)` ·
 `dispatch(uno, args?)` · `insertText(text)` · `mergeFields(data, opts?) → number` ·
-`ready()` · `client`
+`print() → 'dialog' | 'tab' | 'download'` · `ready()` · `client`
+
+`print()` renders the document to PDF inside the editor and hands it to the browser's print
+dialog; the resolved value says how it was served. A host command carries no click gesture
+into the editor frame, so on WebKit/Safari — which needs a real tab for PDF printing — it
+resolves to `'download'`. It rejects when there is no document, or the editor is busy.
 
 ### Non-React usage
 

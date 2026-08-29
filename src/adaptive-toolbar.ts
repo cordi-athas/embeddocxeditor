@@ -30,6 +30,7 @@ const PILL_ICONS: Record<string, string> = {
   paragraph: 'ic-align-left',
   insert: 'ic-table',
   view: 'ic-zoom-in',
+  calc: 'ic-cells',
 };
 
 export function installAdaptiveToolbar(toolbar: HTMLElement, root: HTMLElement): void {
@@ -68,6 +69,17 @@ export function installAdaptiveToolbar(toolbar: HTMLElement, root: HTMLElement):
     const controls = document.createElement('div');
     controls.className = 'dxe-dd-controls';
     section.append(title, controls);
+
+    // Kind-specific groups (`.dxe-writer-only` / `.dxe-calc-only`) are hidden by
+    // CSS for the other document kind — the generated pill and ⋯ section must
+    // carry the same marker, or folding would resurrect e.g. the Calc-only cell
+    // controls inside a Writer document.
+    for (const cls of ['dxe-writer-only', 'dxe-calc-only']) {
+      if (group.classList.contains(cls)) {
+        trigger.classList.add(cls);
+        section.classList.add(cls);
+      }
+    }
 
     const item: Item = { group, trigger, dropdown, section, controls, state: 'inline' };
     trigger.addEventListener('click', (e) => {

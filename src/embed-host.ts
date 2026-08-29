@@ -18,7 +18,8 @@ import { resolveAllowedOrigins, decideHostTrust } from './embed-trust';
  *
  * Protocol (see also public/embed-sdk.js — the host-facing wrapper):
  *   Host → Editor:  { source:'dxe-host', v:1, id?, type, payload? }
- *     type: 'load' | 'getDocx' | 'new' | 'setTheme' | 'dispatch' | 'insertText' | 'mergeFields'
+ *     type: 'load' | 'getDocx' | 'new' | 'setTheme' | 'dispatch' | 'insertText'
+ *         | 'mergeFields' | 'print'
  *   Editor → Host:  { source:'dxe', v:1, type, ... }
  *     type: 'ready'                              — editor is up, accepting commands
  *         | 'change'                             — document edited (debounced)
@@ -31,11 +32,22 @@ import { resolveAllowedOrigins, decideHostTrust } from './embed-trust';
 
 const PROTOCOL_VERSION = 1;
 
+/**
+ * How a print request was actually served — the payload of a `print` reply.
+ *   'dialog'   — the browser's print dialog opened on the rendered PDF
+ *   'tab'      — the PDF opened in a new tab; the user prints from there
+ *   'download' — neither was possible, so the PDF was downloaded instead
+ */
+export type PrintOutcome = 'dialog' | 'tab' | 'download';
+
 export interface HostBridgeHooks {
   setStatus?: (s: string) => void;
   setFilename?: (name: string) => void;
   /** Called after a host-driven load / new / export — the document is now "clean". */
   markClean?: () => void;
+  /** Print the current document; resolves with how the request was served.
+   *  Omit to make the `print` command unavailable to hosts. */
+  print?: () => Promise<PrintOutcome>;
 }
 
 export interface HostBridgeOptions {
@@ -168,6 +180,17 @@ export function installHostBridge(
         case 'insertText': {
           editor.insertText(String(payload?.text ?? ''));
           reply(id, true);
+          break;
+        }
+        case 'print': {
+          if (!hooks.print) {
+            reply(id, false, undefined, [], 'print is not available on this editor');
+            break;
+          }
+          // No click gesture reaches the editor frame from a host command, so
+          // WebKit (which can't print an off-screen frame) falls back to
+          // downloading the PDF — `method` tells the host what happened.
+          reply(id, true, { method: await hooks.print() });
           break;
         }
         case 'mergeFields': {

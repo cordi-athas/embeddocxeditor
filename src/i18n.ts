@@ -13,6 +13,7 @@ export const DEFAULT_LANG: Lang = 'en';
 const MESSAGES: Record<Lang, Record<string, string>> = {
   en: {
     't.new': 'New document', 't.newsheet': 'New spreadsheet', 't.open': 'Open file', 't.save': 'Save', 't.pdf': 'Export as PDF',
+    't.print': 'Print (Ctrl+P)',
     't.numfmt': 'Number format', 't.cells': 'Cells',
     't.undo': 'Undo', 't.redo': 'Redo', 't.bold': 'Bold', 't.italic': 'Italic', 't.underline': 'Underline',
     't.strike': 'Strikethrough', 't.subscript': 'Subscript', 't.superscript': 'Superscript',
@@ -22,7 +23,7 @@ const MESSAGES: Record<Lang, Record<string, string>> = {
     't.linespacing': 'Line spacing', 't.marks': 'Formatting marks', 't.spell': 'Spell check',
     't.zoomout': 'Zoom out', 't.zoomin': 'Zoom in', 't.table': 'Insert table', 't.image': 'Insert image',
     't.link': 'Insert link', 't.find': 'Find & replace (Ctrl+F)',
-    'group.file': 'File', 'group.style': 'Style', 'group.format': 'Format', 'group.paragraph': 'Paragraph', 'group.insert': 'Insert', 'group.view': 'View', 'group.more': 'More',
+    'group.file': 'File', 'group.style': 'Style', 'group.format': 'Format', 'group.paragraph': 'Paragraph', 'group.insert': 'Insert', 'group.view': 'View', 'group.calc': 'Spreadsheet', 'group.more': 'More',
     'aria.parastyle': 'Paragraph style', 'aria.font': 'Font', 'aria.size': 'Size', 'aria.linespacing': 'Line spacing', 'aria.toolbar': 'Formatting',
     'opt.normal': 'Normal', 'opt.title': 'Title', 'opt.subtitle': 'Subtitle', 'opt.h1': 'Heading 1', 'opt.h2': 'Heading 2', 'opt.h3': 'Heading 3', 'opt.quote': 'Quotation',
     'ls.single': 'Single (1.0)', 'ls.onehalf': '1.5', 'ls.double': 'Double (2.0)',
@@ -35,6 +36,7 @@ const MESSAGES: Record<Lang, Record<string, string>> = {
     'st.newblank': 'New blank document.', 'st.opening': 'Opening', 'st.opened': 'Opened',
     'st.saving': 'Saving as DOCX…', 'st.saved': 'Saved', 'st.pdfgen': 'Generating PDF…', 'st.pdfdone': 'PDF downloaded',
     'st.imageins': 'Inserting image…', 'st.imagefail': 'Couldn’t insert image',
+    'st.printgen': 'Preparing print…', 'st.printfail': 'Couldn’t open the print dialog — the PDF was downloaded instead',
     'st.loaded': 'Loaded', 'st.newdoc': 'New document', 'st.error': 'Error',
     'st.reload': 'Reload',
     'st.needsIsolation':
@@ -43,6 +45,7 @@ const MESSAGES: Record<Lang, Record<string, string>> = {
   },
   tr: {
     't.new': 'Yeni belge', 't.newsheet': 'Yeni elektronik tablo', 't.open': 'Dosya aç', 't.save': 'Kaydet', 't.pdf': 'PDF olarak dışa aktar',
+    't.print': 'Yazdır (Ctrl+P)',
     't.numfmt': 'Sayı biçimi', 't.cells': 'Hücreler',
     't.undo': 'Geri al', 't.redo': 'Yinele', 't.bold': 'Kalın', 't.italic': 'İtalik', 't.underline': 'Altı çizili',
     't.strike': 'Üstü çizili', 't.subscript': 'Alt simge', 't.superscript': 'Üst simge',
@@ -52,7 +55,7 @@ const MESSAGES: Record<Lang, Record<string, string>> = {
     't.linespacing': 'Satır aralığı', 't.marks': 'Biçim işaretleri', 't.spell': 'Yazım denetimi',
     't.zoomout': 'Uzaklaştır', 't.zoomin': 'Yakınlaştır', 't.table': 'Tablo ekle', 't.image': 'Görsel ekle',
     't.link': 'Köprü ekle', 't.find': 'Bul ve Değiştir (Ctrl+F)',
-    'group.file': 'Dosya', 'group.style': 'Stil', 'group.format': 'Biçim', 'group.paragraph': 'Paragraf', 'group.insert': 'Ekle', 'group.view': 'Görünüm', 'group.more': 'Diğer',
+    'group.file': 'Dosya', 'group.style': 'Stil', 'group.format': 'Biçim', 'group.paragraph': 'Paragraf', 'group.insert': 'Ekle', 'group.view': 'Görünüm', 'group.calc': 'Elektronik tablo', 'group.more': 'Diğer',
     'aria.parastyle': 'Paragraf stili', 'aria.font': 'Yazı tipi', 'aria.size': 'Punto', 'aria.linespacing': 'Satır aralığı', 'aria.toolbar': 'Biçimlendirme',
     'opt.normal': 'Normal', 'opt.title': 'Başlık', 'opt.subtitle': 'Alt başlık', 'opt.h1': 'Başlık 1', 'opt.h2': 'Başlık 2', 'opt.h3': 'Başlık 3', 'opt.quote': 'Alıntı',
     'ls.single': 'Tek (1.0)', 'ls.onehalf': '1.5', 'ls.double': 'Çift (2.0)',
@@ -65,6 +68,7 @@ const MESSAGES: Record<Lang, Record<string, string>> = {
     'st.newblank': 'Yeni boş belge.', 'st.opening': 'Açılıyor', 'st.opened': 'Açıldı',
     'st.saving': 'DOCX olarak kaydediliyor…', 'st.saved': 'Kaydedildi', 'st.pdfgen': 'PDF oluşturuluyor…', 'st.pdfdone': 'PDF indirildi',
     'st.imageins': 'Görsel ekleniyor…', 'st.imagefail': 'Görsel eklenemedi',
+    'st.printgen': 'Yazdırma hazırlanıyor…', 'st.printfail': 'Yazdırma penceresi açılamadı — PDF indirildi',
     'st.loaded': 'Yüklendi', 'st.newdoc': 'Yeni belge', 'st.error': 'Hata',
     'st.reload': 'Yeniden yükle',
     'st.needsIsolation':
@@ -124,6 +128,7 @@ export function applyI18n(): void {
 
   const byId: Record<string, string> = {
     btnNew: 't.new', btnNewSheet: 't.newsheet', btnOpen: 't.open', btnSave: 't.save', btnPdf: 't.pdf', btnFind: 't.find',
+    btnPrint: 't.print',
     calcNumFmt: 't.numfmt', calcCells: 't.cells',
     btnTable: 't.table', btnImage: 't.image', btnLink: 't.link',
   };

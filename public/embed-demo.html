@@ -57,6 +57,7 @@
       <span class="spacer"></span>
       <button id="btnLoad">Belge Yükle</button>
       <button id="btnSave">DOCX İndir</button>
+      <button id="btnPrint">Yazdır</button>
       <button id="btnTheme">Tema: Mavi</button>
       <span id="dirty" class="clean">● kaydedildi</span>
       <input id="file" type="file" accept=".docx,.odt,.rtf" hidden />
@@ -101,6 +102,17 @@
         a.click();
         URL.revokeObjectURL(a.href);
       }
+
+      // Host "Yazdır": the editor renders the document to PDF and hands it to
+      // the browser's print dialog. The resolved value says how it was served.
+      document.getElementById('btnPrint').onclick = async () => {
+        try {
+          const method = await editor.print();
+          if (method === 'download') console.warn('Print dialog unavailable — PDF downloaded.');
+        } catch (err) {
+          console.error('Print failed:', err.message);
+        }
+      };
 
       // Host "Belge Yükle": read a file and hand the bytes to the editor.
       document.getElementById('btnLoad').onclick = () => document.getElementById('file').click();

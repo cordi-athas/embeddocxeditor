@@ -3,7 +3,7 @@ import { ZetaDocxEditor } from './engine/zeta-engine';
 import type { FindOpts } from './engine/zeta-engine';
 import { safeLinkUrl } from './engine/url-safe';
 import { withKindExt } from './engine/formats';
-import { installHostBridge, type HostBridge } from './embed-host';
+import { installHostBridge, type HostBridge, type PrintOutcome } from './embed-host';
 import { installAdaptiveToolbar } from './adaptive-toolbar';
 import { setLang, applyI18n, resolveInitialLang, t } from './i18n';
 import type { DispatchArg } from './engine/protocol';
@@ -20,6 +20,7 @@ const btnNewSheet = document.getElementById('btnNewSheet') as HTMLButtonElement;
 const btnOpen = document.getElementById('btnOpen') as HTMLButtonElement;
 const btnSave = document.getElementById('btnSave') as HTMLButtonElement;
 const btnPdf = document.getElementById('btnPdf') as HTMLButtonElement;
+const btnPrint = document.getElementById('btnPrint') as HTMLButtonElement;
 const btnFind = document.getElementById('btnFind') as HTMLButtonElement;
 const btnFile = document.getElementById('btnFile') as HTMLButtonElement;
 const fileMenu = document.getElementById('fileMenu') as HTMLDivElement;
@@ -122,6 +123,12 @@ window.addEventListener(
       e.preventDefault();
       e.stopImmediatePropagation();
       openFind();
+    } else if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 'p' || e.key === 'P')) {
+      // Without this the browser would print the app shell (toolbar + a blank
+      // canvas) instead of the document.
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      startPrint();
     }
   },
   { capture: true },
@@ -329,6 +336,7 @@ function refreshToolbar(): void {
   btnOpen.disabled = fileBusy;
   btnSave.disabled = fileBusy || !hasDoc;
   btnPdf.disabled = fileBusy || !hasDoc;
+  btnPrint.disabled = fileBusy || !hasDoc;
   btnFind.disabled = fileBusy || !hasDoc;
   btnTable.disabled = fileBusy || !hasDoc;
   btnImage.disabled = fileBusy || !hasDoc;
@@ -344,20 +352,28 @@ function applyKindUI(kind: 'writer' | 'calc'): void {
   window.dispatchEvent(new Event('resize'));
 }
 
+/** Run `fn` with the toolbar disabled, restoring it afterwards. Errors propagate
+ *  — callers that surface them to a user use `action()` below instead. */
+async function withBusy<T>(fn: () => Promise<T>): Promise<T> {
+  busy = true;
+  refreshToolbar();
+  try {
+    return await fn();
+  } finally {
+    busy = false;
+    refreshToolbar();
+  }
+}
+
 /** Wrap an async toolbar action: disable the toolbar while it runs, then restore. */
-function action(fn: () => Promise<void>): () => Promise<void> {
+function action(fn: () => Promise<unknown>): () => Promise<void> {
   return async () => {
     if (busy) return;
-    busy = true;
-    refreshToolbar();
     try {
-      await fn();
+      await withBusy(fn);
     } catch (e) {
       console.error(e);
       setStatus(`${t('st.error')}: ${(e as Error).message}`);
-    } finally {
-      busy = false;
-      refreshToolbar();
     }
   };
 }
@@ -406,6 +422,108 @@ function wireControls(): void {
       el.classList.toggle('active', value === true);
     }
   });
+}
+
+// ── Print ────────────────────────────────────────────────────────────────
+// LibreOffice's own `.uno:Print` would open its in-canvas print dialog and print
+// through the WASM sandbox (the same dead end as its Save dialog), so we render
+// the document to PDF with the existing export pipeline and hand that to the
+// BROWSER's print dialog instead.
+
+/** How long to wait for the PDF to load in the print frame before falling back. */
+const PRINT_LOAD_TIMEOUT_MS = 20_000;
+/** Revoking the blob URL closes the dialog's preview — keep it alive a while. */
+const PRINT_KEEPALIVE_MS = 120_000;
+
+/** WebKit (Safari, every iOS browser) prints a blank page from a hidden frame;
+ *  it needs the PDF in a real tab, opened inside the click gesture. */
+const isWebKit = (): boolean =>
+  /^((?!chrome|chromium|android|crios|fxios|edgios).)*safari/i.test(navigator.userAgent);
+
+/** The frame currently holding a PDF for printing (kept until the next print). */
+let printFrame: HTMLIFrameElement | null = null;
+
+/** Load `url` in an off-screen frame and open the browser's print dialog on it.
+ *  Resolves false if the frame never loads or print() is refused. */
+function printViaFrame(url: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    printFrame?.remove(); // drop the previous print's frame (and its document)
+    const frame = document.createElement('iframe');
+    printFrame = frame;
+    frame.className = 'dxe-printframe';
+    frame.setAttribute('aria-hidden', 'true');
+    let settled = false;
+    const finish = (ok: boolean) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(ok);
+    };
+    const timer = setTimeout(() => finish(false), PRINT_LOAD_TIMEOUT_MS);
+    frame.onload = () => {
+      try {
+        const w = frame.contentWindow;
+        if (!w) return finish(false);
+        w.focus();
+        w.print();
+        finish(true);
+      } catch {
+        finish(false); // e.g. the PDF viewer refused to render in this context
+      }
+    };
+    frame.onerror = () => finish(false);
+    frame.src = url;
+    document.body.appendChild(frame);
+  });
+}
+
+/** Export → print, resolving with how the request was actually served.
+ *  `tab` is a pre-opened window (WebKit only, see isWebKit). */
+async function printAction(tab: Window | null): Promise<PrintOutcome> {
+  const name = currentFilename.replace(/\.[^./\\]+$/, '') + '.pdf';
+  setStatus(t('st.printgen'));
+  const blob = await editor.exportPdf(name);
+  const url = URL.createObjectURL(blob);
+  // The URL must outlive the print dialog; the browser frees it on unload anyway.
+  setTimeout(() => URL.revokeObjectURL(url), PRINT_KEEPALIVE_MS);
+
+  if (tab && !tab.closed) {
+    tab.location.href = url; // WebKit: user prints from the PDF viewer tab
+    setStatus('');
+    return 'tab';
+  }
+  // Skipped on WebKit even if its tab was blocked: printing the frame there
+  // "succeeds" and silently produces a blank page.
+  if (!isWebKit() && (await printViaFrame(url))) {
+    setStatus('');
+    return 'dialog';
+  }
+  // No embedded PDF viewer (or it refused): a real tab still gives the user a
+  // print button. Popup blockers usually stop this — the download is the floor.
+  if (window.open(url, '_blank')) {
+    setStatus('');
+    return 'tab';
+  }
+  downloadBlob(blob, name);
+  setStatus(t('st.printfail'));
+  return 'download';
+}
+
+/** Toolbar + Ctrl/Cmd+P entry point. */
+function startPrint(): void {
+  if (!booted || busy || !hasDoc) return;
+  // WebKit needs its tab opened synchronously, while the gesture is still live.
+  const tab = isWebKit() ? window.open('', '_blank') : null;
+  void action(() => printAction(tab))();
+}
+
+/** Embed-API entry point (`print` command). Same guards as the toolbar button,
+ *  but refusals and failures are reported back to the host instead of the
+ *  status bar. There is no click gesture here, so no pre-opened WebKit tab. */
+function printForHost(): Promise<PrintOutcome> {
+  if (!booted || !hasDoc) return Promise.reject(new Error('No document to print'));
+  if (busy) return Promise.reject(new Error('Editor is busy'));
+  return withBusy(() => printAction(null));
 }
 
 /** Standalone save: real "Save As" dialog where supported, else a download. */
@@ -511,6 +629,7 @@ async function main(): Promise<void> {
       currentFilename = name;
     },
     markClean: () => setDirty(false),
+    print: printForHost,
   });
 
   // Edits → dirty (debounced in the engine, then mirrored to the host).
@@ -568,6 +687,8 @@ async function main(): Promise<void> {
   };
 
   btnSave.onclick = action(saveAction);
+
+  btnPrint.onclick = startPrint;
 
   btnPdf.onclick = action(async () => {
     const name = currentFilename.replace(/\.[^./\\]+$/, '') + '.pdf';

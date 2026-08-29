@@ -1,6 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import type { CSSProperties } from 'react';
-import { DocxEditorClient, type LoadOptions } from './client';
+import { DocxEditorClient, type LoadOptions, type PrintOutcome } from './client';
 
 export interface DocxEditorHandle {
   /** Current document as DOCX bytes. */
@@ -13,6 +13,8 @@ export interface DocxEditorHandle {
   dispatch(uno: string, args?: unknown): Promise<unknown>;
   /** Inject plain text at the cursor. */
   insertText(text: string): Promise<unknown>;
+  /** Print the current document; resolves with how the request was served. */
+  print(): Promise<PrintOutcome>;
   /** Fill `{{key}}` placeholders with data; resolves to the replacement count. */
   mergeFields(
     data: Record<string, string>,
@@ -94,6 +96,7 @@ export const DocxEditor = forwardRef<DocxEditorHandle, DocxEditorProps>(function
       setTheme: (vars) => requireClient().setTheme(vars),
       dispatch: (uno, args) => requireClient().dispatch(uno, args),
       insertText: (text) => requireClient().insertText(text),
+      print: () => requireClient().print(),
       mergeFields: (data, options) => requireClient().mergeFields(data, options),
       ready: () => requireClient().ready(),
       get client() {

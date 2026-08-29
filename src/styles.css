@@ -79,6 +79,9 @@ body > .dxe { height: 100vh; }
 /* Narrowest widths: icon-only pills (labels hidden, dropdown stays labeled). */
 .dxe-compact .dxe-pill-label { display: none; }
 .dxe-compact .dxe-pill { padding: 0 6px; gap: 2px; }
+/* …and tighter group separators, which is where the last few pixels come from
+   once every group has already folded. */
+.dxe-compact .dxe-sep { margin: 0 2px; }
 
 /* Dropdown holding a folded group's controls. */
 .dxe-dd {
@@ -412,3 +415,18 @@ body > .dxe { height: 100vh; }
   cursor: pointer;
 }
 .dxe-grid-cell.on { background: var(--dxe-active-bg); border-color: var(--dxe-accent); }
+
+/* ── Print frame ─────────────────────────────────────────────────────────
+   Holds the generated PDF while the browser's print dialog is open. It lives
+   on <body> (outside `.dxe`), so this rule is deliberately unscoped. Parked
+   off-screen rather than `display:none` / `visibility:hidden` / zero-sized:
+   Chromium won't print a frame it treats as invisible, and the PDF viewer
+   needs a real page-sized box to lay the document out in. */
+.dxe-printframe {
+  position: fixed;
+  top: 0;
+  left: -10000px;
+  width: 794px; /* A4 at 96dpi */
+  height: 1123px;
+  border: 0;
+}

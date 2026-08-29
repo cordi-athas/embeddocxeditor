@@ -17,16 +17,38 @@ function download(bytes: Uint8Array, name = 'document.docx') {
   URL.revokeObjectURL(a.href);
 }
 
+const btnStyle = {
+  padding: '7px 12px',
+  background: '#1e293b',
+  color: '#e2e8f0',
+  border: 0,
+  borderRadius: 7,
+  cursor: 'pointer',
+} as const;
+
 export default function App() {
   const ref = useRef<DocxEditorHandle>(null);
   const [doc, setDoc] = useState<ArrayBuffer | undefined>();
   const [docName, setDocName] = useState<string | undefined>();
   const [ready, setReady] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [printed, setPrinted] = useState<string | undefined>();
 
   const save = async () => {
     const bytes = await ref.current!.getDocx();
     download(bytes);
+  };
+
+  // The editor renders the document to PDF and hands it to the browser's print
+  // dialog. The resolved value says how it was served ('dialog' | 'tab' |
+  // 'download') — a host command carries no click gesture into the editor
+  // frame, so Safari falls back to downloading the PDF.
+  const printDoc = async () => {
+    try {
+      setPrinted(await ref.current!.print());
+    } catch (e) {
+      setPrinted(`failed: ${(e as Error).message}`);
+    }
   };
 
   return (
@@ -60,20 +82,17 @@ export default function App() {
             }}
           />
         </label>
-        <button
-          id="save"
-          onClick={save}
-          style={{
-            padding: '7px 12px',
-            background: '#1e293b',
-            color: '#e2e8f0',
-            border: 0,
-            borderRadius: 7,
-            cursor: 'pointer',
-          }}
-        >
+        <button id="save" onClick={save} style={btnStyle}>
           Download DOCX
         </button>
+        <button id="print" onClick={printDoc} style={btnStyle}>
+          Print
+        </button>
+        {printed && (
+          <span id="printed" style={{ fontSize: 12, color: '#94a3b8' }}>
+            print → {printed}
+          </span>
+        )}
         <span id="status" style={{ fontSize: 12, color: dirty ? '#fbbf24' : '#34d399' }}>
           {dirty ? '● unsaved' : ready ? '● ready' : 'loading…'}
         </span>

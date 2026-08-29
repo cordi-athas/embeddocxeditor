@@ -20,6 +20,14 @@ export interface LoadOptions {
 
 export type DocxEditorEvent = 'ready' | 'change' | 'clean' | 'save' | 'error';
 
+/**
+ * How a print request was served.
+ *   'dialog'   — the browser's print dialog opened on the rendered PDF
+ *   'tab'      — the PDF opened in a new tab; the user prints from there
+ *   'download' — neither was possible, so the PDF was downloaded instead
+ */
+export type PrintOutcome = 'dialog' | 'tab' | 'download';
+
 type Pending = { resolve: (value: any) => void; reject: (error: Error) => void };
 
 export class DocxEditorClient {
@@ -106,6 +114,17 @@ export class DocxEditorClient {
   /** Inject plain text at the cursor. */
   insertText(text: string): Promise<unknown> {
     return this.request('insertText', { text });
+  }
+
+  /**
+   * Print the current document. The editor renders it to PDF and hands that to
+   * the browser's print dialog. No click gesture reaches the editor frame from
+   * a host command, so WebKit/Safari cannot open a tab there and falls back to
+   * downloading the PDF — the resolved value says which happened.
+   */
+  async print(): Promise<PrintOutcome> {
+    const r = await this.request('print', {});
+    return (r as { method?: PrintOutcome }).method ?? 'download';
   }
 
   /**

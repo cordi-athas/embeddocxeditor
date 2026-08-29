@@ -45,6 +45,12 @@ The document is exported as DOCX/PDF (`storeToURL`, `MS Word 2007 XML` / `writer
 
 Whether the document was opened via "Open"/"New" or from LibreOffice's own Start Center, the *active* document is resolved at save time.
 
+### Printing
+
+The **printer button** in the toolbar (or **Ctrl/Cmd+P**) prints the current document. LibreOffice's own `.uno:Print` would open its in-canvas print dialog and print inside the WASM sandbox — the same dead end as its Save dialog — so the document is rendered to PDF with the export pipeline above and handed to the **browser's** print dialog: an off-screen `<iframe>` holding the PDF (Chromium/Firefox), a new tab for WebKit/Safari, and a plain PDF download if both are blocked. Ctrl/Cmd+P is intercepted capture-phase for the same reason as Ctrl+S — otherwise the browser would print the app shell instead of the document.
+
+Hosts can trigger the same flow over the embed API with `editor.print()`. It resolves to how the request was served — `'dialog'` (print dialog opened), `'tab'` (PDF opened in a new tab), or `'download'` (neither was possible, so the PDF was downloaded). A host command carries no click gesture into the editor frame, so on WebKit/Safari — which needs a real tab — a host-driven print resolves to `'download'`; the toolbar button and Ctrl/Cmd+P still open a tab there. It rejects when there is no document or the editor is busy with another operation.
+
 > ℹ️ **Note (WASM virtual-FS gotcha):** LibreOffice's **own** Save opens a window like `/home/web_user` and writes to the WASM **virtual filesystem** — not your disk. That's why **Ctrl+S _and_ Ctrl+Shift+S are intercepted** (capture-phase, on a listener registered at module load) and routed into our save/export flow; LibreOffice's menu/toolbar are also hidden. So you normally never reach that window — use **File ▸ Save** at the top.
 
 ## How it works (overview)
@@ -116,6 +122,8 @@ editor.dispatch('.uno:Bold');
 // Programmatic content: inject text + fill template placeholders with data.
 await editor.insertText('Dear {{name}}, your vessel {{vessel}} is due.');
 const replaced = await editor.mergeFields({ name: 'Captain', vessel: 'MV Marinex' }); // → count
+
+await editor.print(); // → 'dialog' | 'tab' | 'download' (see Printing)
 ```
 
 | Method / event | What it does |
@@ -125,6 +133,7 @@ const replaced = await editor.mergeFields({ name: 'Captain', vessel: 'MV Marinex
 | `getDocx() → Uint8Array` | Get the current document as DOCX bytes (for the host's own "Save") |
 | `newDocument()` · `setTheme(vars)` · `dispatch(uno, args)` | new document / theme / raw UNO command |
 | `insertText(text)` · `mergeFields(data, opts?) → count` | inject text at the cursor / fill `{{key}}` template placeholders with data |
+| `print() → 'dialog' \| 'tab' \| 'download'` | print the current document (see [Printing](#printing)); the result says how it was served |
 | `on('ready' \| 'change' \| 'clean' \| 'save' \| 'error', cb)` | events |
 
 Inside the editor, **Ctrl/Cmd+S** does not go to LibreOffice's internal save — when embedded it sends a **`save`** event to the host (which persists via `getDocx`), and standalone it downloads. Unsaved-change tracking is done with `change`/`clean`.
